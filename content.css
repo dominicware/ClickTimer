@@ -1,0 +1,20 @@
+/* Inline clickable time tokens */
+.rt-time {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+  
+  .rt-time:hover {
+    text-decoration-style: solid;
+  }
+  
+  /* Host element for the timer panel */
+  #rt-panel-host {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2147483647; /* maximum-ish */
+  }
+  
