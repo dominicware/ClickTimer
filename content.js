@@ -64,10 +64,7 @@
         }
         .header .title { font-weight: 600; }
         .header .count { opacity: 0.8; }
-        .list {
-          max-height: 240px;
-          overflow: auto;
-        }
+        .list { max-height: 240px; overflow: auto; }
         .row {
           display: grid;
           grid-template-columns: 1fr auto;
@@ -103,6 +100,7 @@
           padding: 6px 8px;
           border-radius: 8px;
           background: rgba(255,255,255,0.12);
+          user-select: none;
         }
         button:hover { background: rgba(255,255,255,0.18); }
         .danger { background: rgba(255,70,70,0.22); }
@@ -135,7 +133,7 @@
       if (action === "remove") removeTimer(id);
     });
 
-    renderPanel(); // initial render
+    renderPanel();
   }
 
   function destroyPanelIfEmpty() {
@@ -146,9 +144,7 @@
       tickHandle = null;
     }
 
-    if (panelHost) {
-      panelHost.remove();
-    }
+    if (panelHost) panelHost.remove();
 
     panelHost = null;
     shadow = null;
@@ -189,6 +185,8 @@
 
   function ensureTicking() {
     if (tickHandle) return;
+
+    // UPDATED: 1000ms tick instead of 250ms to avoid frequent DOM rebuilds
     tickHandle = setInterval(() => {
       const now = Date.now();
       let hasRunning = false;
@@ -216,7 +214,7 @@
           tickHandle = null;
         }
       }
-    }, 250);
+    }, 1000);
   }
 
   function addTimer(seconds, label) {
@@ -262,7 +260,6 @@
   }
 
   function renderPanel() {
-    // If panel isn't created yet, nothing to render.
     if (!panelHost || !listEl || !countEl) return;
 
     countEl.textContent = String(timers.length);
@@ -273,7 +270,7 @@
         t.done ? 0 : (t.paused ? t.remainingMs : Math.max(0, t.endTime - Date.now()))
       );
       const pauseText = t.paused ? "Resume" : "Pause";
-      const pauseDisabled = t.done ? "disabled" : "";
+
       return `
         <div class="${cls}">
           <div class="meta">
@@ -281,7 +278,7 @@
             <div class="time">${timeText}</div>
           </div>
           <div class="actions">
-            <button data-action="pause" data-id="${t.id}" ${pauseDisabled}>${pauseText}</button>
+            <button data-action="pause" data-id="${t.id}">${pauseText}</button>
             <button class="danger" data-action="remove" data-id="${t.id}">X</button>
           </div>
         </div>
@@ -318,7 +315,6 @@
 
     const normalized = raw.replace(/[–—]/g, "-");
 
-    // Range: default to upper bound
     const rangeMatch = normalized.match(
       /\b(\d+)\s*-\s*(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/i
     );
@@ -331,7 +327,6 @@
       return seconds;
     }
 
-    // Sequence: "1 hour 30 minutes", "1h 30m"
     const tokenRe = /(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
     let m;
     let total = 0;
@@ -433,14 +428,14 @@
   // Initial scan
   scanAndLinkTimes();
 
-  // Start timer immediately on click
+  // UPDATED: bubble-phase listener (removed capture: true) to reduce interference
   document.addEventListener("click", (e) => {
     const el = e.target && e.target.closest ? e.target.closest(".rt-time") : null;
     if (!el) return;
     const seconds = parseInt(el.getAttribute("data-rt-seconds") || "", 10);
     if (!Number.isFinite(seconds) || seconds <= 0) return;
     addTimer(seconds, el.textContent.trim());
-  }, { capture: true });
+  });
 
   // Rescan dynamic pages
   let rescanTimer = null;
