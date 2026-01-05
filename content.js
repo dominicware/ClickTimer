@@ -18,6 +18,36 @@
   const TEMP_RE = /°\s*[CF]?\b/i;
 
   // -----------------------------
+  // Alarm audio (loops until done timers dismissed)
+  // -----------------------------
+  const alarmUrl = (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL)
+    ? chrome.runtime.getURL("assets/alarm.mp3")
+    : null;
+
+  const alarmAudio = alarmUrl ? new Audio(alarmUrl) : null;
+  if (alarmAudio) {
+    alarmAudio.loop = true;
+    alarmAudio.preload = "auto";
+  }
+
+  async function updateAlarmPlayback() {
+    if (!alarmAudio) return;
+
+    const hasUndismissedDoneTimers = timers.some(t => t.done);
+    if (hasUndismissedDoneTimers) {
+      // Try to start (may be blocked if the user hasn't interacted with the page).
+      try {
+        await alarmAudio.play();
+      } catch {
+        // If blocked, user can click any time again and it will likely allow playback thereafter.
+      }
+    } else {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
+    }
+  }
+
+  // -----------------------------
   // Panel lifecycle (lazy create / auto-destroy)
   // -----------------------------
   let panelHost = null;
@@ -105,7 +135,7 @@
         button:hover { background: rgba(255,255,255,0.18); }
         .danger { background: rgba(255,70,70,0.22); }
         .danger:hover { background: rgba(255,70,70,0.30); }
-        .done { animation: flash 1s ease-in-out 0s 6; }
+        .done { animation: flash 1s ease-in-out 0s 999; }
         @keyframes flash {
           0%, 100% { background: rgba(255,255,255,0.00); }
           50% { background: rgba(255,255,255,0.10); }
@@ -129,6 +159,7 @@
       const action = btn.getAttribute("data-action");
       const id = btn.getAttribute("data-id");
       if (!action || !id) return;
+
       if (action === "pause") togglePause(id);
       if (action === "remove") removeTimer(id);
     });
@@ -164,32 +195,13 @@
     return `${m}:${String(s).padStart(2, "0")}`;
   }
 
-  function beep() {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioCtx();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.value = 880;
-      g.gain.value = 0.03;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      setTimeout(() => {
-        o.stop();
-        ctx.close().catch(() => {});
-      }, 180);
-    } catch {}
-  }
-
   function ensureTicking() {
     if (tickHandle) return;
 
-    // UPDATED: 1000ms tick instead of 250ms to avoid frequent DOM rebuilds
-    tickHandle = setInterval(() => {
+    tickHandle = setInterval(async () => {
       const now = Date.now();
       let hasRunning = false;
+      let newlyDone = false;
 
       for (const t of timers) {
         if (t.done || t.paused) continue;
@@ -198,7 +210,7 @@
         if (remaining <= 0) {
           t.done = true;
           t.remainingMs = 0;
-          beep();
+          newlyDone = true;
         } else {
           t.remainingMs = remaining;
           hasRunning = true;
@@ -206,6 +218,10 @@
       }
 
       renderPanel();
+
+      if (newlyDone) {
+        await updateAlarmPlayback();
+      }
 
       if (!hasRunning) {
         const stillRunning = timers.some(t => !t.done && !t.paused);
@@ -217,7 +233,7 @@
     }, 1000);
   }
 
-  function addTimer(seconds, label) {
+  async function addTimer(seconds, label) {
     createPanelIfNeeded();
 
     const ms = seconds * 1000;
@@ -234,6 +250,10 @@
 
     renderPanel();
     ensureTicking();
+
+    // Prime audio permission path (best effort) after a user click.
+    // If it fails, it’s fine; later completion may still play if allowed.
+    await updateAlarmPlayback();
   }
 
   function togglePause(id) {
@@ -251,11 +271,12 @@
     renderPanel();
   }
 
-  function removeTimer(id) {
+  async function removeTimer(id) {
     const idx = timers.findIndex(x => x.id === id);
     if (idx >= 0) timers.splice(idx, 1);
 
     renderPanel();
+    await updateAlarmPlayback();
     destroyPanelIfEmpty();
   }
 
@@ -315,6 +336,7 @@
 
     const normalized = raw.replace(/[–—]/g, "-");
 
+    // Range: default to upper bound
     const rangeMatch = normalized.match(
       /\b(\d+)\s*-\s*(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/i
     );
@@ -327,6 +349,7 @@
       return seconds;
     }
 
+    // Sequence: "1 hour 30 minutes", "1h 30m"
     const tokenRe = /(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
     let m;
     let total = 0;
@@ -428,7 +451,7 @@
   // Initial scan
   scanAndLinkTimes();
 
-  // UPDATED: bubble-phase listener (removed capture: true) to reduce interference
+  // Start timer immediately on click (bubble-phase)
   document.addEventListener("click", (e) => {
     const el = e.target && e.target.closest ? e.target.closest(".rt-time") : null;
     if (!el) return;

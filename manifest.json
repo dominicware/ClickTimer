@@ -1,15 +1,20 @@
 {
-    "manifest_version": 3,
-    "name": "Recipe Click Timers",
-    "version": "0.1.0",
-    "description": "Makes recipe times clickable and starts in-page timers on click.",
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content.js"],
-        "css": ["content.css"],
-        "run_at": "document_idle"
-      }
-    ]
-  }
-  
+  "manifest_version": 3,
+  "name": "Recipe Click Timers",
+  "version": "0.1.0",
+  "description": "Makes recipe times clickable and starts in-page timers on click.",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/alarm.mp3"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
