@@ -13,7 +13,10 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/alarm.mp3"],
+      "resources": [
+        "assets/alarm.mp3",
+        "assets/fonts/DSEG7Classic-Regular.woff2"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

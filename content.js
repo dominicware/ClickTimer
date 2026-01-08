@@ -18,33 +18,59 @@
   const TEMP_RE = /°\s*[CF]?\b/i;
 
   // -----------------------------
-  // Alarm audio (loops until done timers dismissed)
+  // Assets
   // -----------------------------
-  const alarmUrl = (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL)
-    ? chrome.runtime.getURL("assets/alarm.mp3")
+  const runtimeGetURL =
+    (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getURL)
+      ? chrome.runtime.getURL.bind(chrome.runtime)
+      : null;
+
+  const alarmUrl = runtimeGetURL ? runtimeGetURL("assets/alarm.mp3") : null;
+  const fontUrl = runtimeGetURL
+    ? runtimeGetURL("assets/fonts/DSEG7Classic-Regular.woff2")
     : null;
 
+  // Alarm audio (loops until all DONE timers are dismissed)
   const alarmAudio = alarmUrl ? new Audio(alarmUrl) : null;
   if (alarmAudio) {
     alarmAudio.loop = true;
     alarmAudio.preload = "auto";
   }
 
+  /** @type {Array<{id:string,label:string,endTime:number,paused:boolean,remainingMs:number,done:boolean}>} */
+  const timers = [];
+
   async function updateAlarmPlayback() {
     if (!alarmAudio) return;
 
     const hasUndismissedDoneTimers = timers.some(t => t.done);
     if (hasUndismissedDoneTimers) {
-      // Try to start (may be blocked if the user hasn't interacted with the page).
       try {
         await alarmAudio.play();
-      } catch {
-        // If blocked, user can click any time again and it will likely allow playback thereafter.
-      }
+      } catch {}
     } else {
       alarmAudio.pause();
       alarmAudio.currentTime = 0;
     }
+  }
+
+  // -----------------------------
+  // Font loading
+  // -----------------------------
+  let fontLoaded = false;
+  async function loadDsegFontOnce() {
+    if (fontLoaded) return;
+    if (!fontUrl || !("FontFace" in window) || !document.fonts) return;
+
+    try {
+      const face = new FontFace("DSEG7Classic", `url(${fontUrl}) format("woff2")`, {
+        style: "normal",
+        weight: "400"
+      });
+      await face.load();
+      document.fonts.add(face);
+      fontLoaded = true;
+    } catch {}
   }
 
   // -----------------------------
@@ -55,12 +81,12 @@
   let listEl = null;
   let countEl = null;
 
-  /** @type {Array<{id:string,label:string,endTime:number,paused:boolean,remainingMs:number,done:boolean}>} */
-  const timers = [];
   let tickHandle = null;
 
-  function createPanelIfNeeded() {
+  async function createPanelIfNeeded() {
     if (panelHost) return;
+
+    await loadDsegFontOnce();
 
     panelHost = document.createElement("div");
     panelHost.id = "rt-panel-host";
@@ -71,81 +97,153 @@
     document.documentElement.appendChild(panelHost);
 
     shadow = panelHost.attachShadow({ mode: "open" });
+
     shadow.innerHTML = `
       <style>
         :host { all: initial; }
+
         .panel {
-          font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-          width: 280px;
-          background: rgba(20,20,20,0.92);
-          color: white;
-          border-radius: 10px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+          /* ~33% smaller than previous */
+          width: min(320px, 86vw);
+          border-radius: 20px;
           overflow: hidden;
+
+          color: rgba(255,255,255,0.96);
+          background: linear-gradient(180deg, rgba(45,45,45,0.96) 0%, rgba(30,30,30,0.96) 100%);
+          box-shadow:
+            0 12px 32px rgba(0,0,0,0.32),
+            0 2px 0 rgba(255,255,255,0.04) inset;
+
+          font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
+
         .header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 10px 12px;
-          border-bottom: 1px solid rgba(255,255,255,0.12);
-          font-size: 13px;
-          letter-spacing: 0.2px;
+
+          font-size: clamp(12px, 2.8vw, 18px);
+          font-weight: 400;
+          letter-spacing: -0.02em;
         }
-        .header .title { font-weight: 600; }
-        .header .count { opacity: 0.8; }
-        .list { max-height: 240px; overflow: auto; }
+
+        .count {
+          font-size: clamp(12px, 2.8vw, 18px);
+          font-weight: 400;
+          opacity: 0.92;
+        }
+
+        .divider {
+          height: 2px;
+          background: rgba(255,255,255,0.09);
+        }
+
+        .list {
+            padding: 10px 12px 12px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;              /* spacing between timers */
+            max-height: 240px;      /* optional: prevents panel growing too tall */
+            overflow: auto;         /* optional: scroll when many timers */  
+        }
+
         .row {
           display: grid;
           grid-template-columns: 1fr auto;
           gap: 10px;
-          padding: 10px 12px;
-          border-bottom: 1px solid rgba(255,255,255,0.10);
           align-items: center;
+          padding-bottom: 10px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-        .row:last-child { border-bottom: none; }
-        .meta {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
+        .row:last-child {
+          padding-bottom: 0;
+          border-bottom: none;
         }
+
+        .meta { min-width: 0; }
+
         .label {
-          font-size: 12px;
-          opacity: 0.85;
+          font-size: clamp(14px, 2.4vw, 18px);
+          font-weight: 650;
+          letter-spacing: -0.02em;
+          opacity: 0.92;
+          margin-bottom: 6px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
+
         .time {
-          font-size: 16px;
-          font-weight: 700;
+          font-family: "DSEG7Classic", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
           font-variant-numeric: tabular-nums;
+
+          /* ~33% smaller digits */
+          font-size: clamp(30px, 7.2vw, 50px);
+          line-height: 1;
+
+          color: rgba(255,255,255,0.92);
+          text-shadow:
+            0 0 10px rgba(255,255,255,0.16),
+            0 5px 14px rgba(0,0,0,0.55);
         }
-        .actions { display: flex; gap: 6px; }
+
+        .actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
         button {
           all: unset;
           cursor: pointer;
-          font-size: 12px;
-          padding: 6px 8px;
-          border-radius: 8px;
-          background: rgba(255,255,255,0.12);
           user-select: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+
+          height: clamp(30px, 5.4vw, 38px);
+          padding: 0 clamp(10px, 2.2vw, 12px);
+
+          border-radius: 14px;
+          font-size: clamp(12px, 2.4vw, 16px);
+          font-weight: 650;
+          letter-spacing: -0.01em;
+
+          color: rgba(255,255,255,0.92);
+          box-shadow:
+            0 8px 14px rgba(0,0,0,0.20),
+            0 2px 0 rgba(255,255,255,0.05) inset;
         }
-        button:hover { background: rgba(255,255,255,0.18); }
-        .danger { background: rgba(255,70,70,0.22); }
-        .danger:hover { background: rgba(255,70,70,0.30); }
-        .done { animation: flash 1s ease-in-out 0s 999; }
-        @keyframes flash {
-          0%, 100% { background: rgba(255,255,255,0.00); }
-          50% { background: rgba(255,255,255,0.10); }
+
+        button:active { transform: translateY(1px); }
+
+        .btn-pause { background: rgba(255,255,255,0.10); }
+        .btn-pause:hover { background: rgba(255,255,255,0.14); }
+
+        .btn-x {
+          width: clamp(34px, 7.0vw, 40px);
+          padding: 0;
+          background: rgba(120, 55, 60, 0.65);
         }
+        .btn-x:hover { background: rgba(145, 60, 66, 0.75); }
+
+        .donePulse { animation: donePulse 1.1s ease-in-out infinite; }
+        @keyframes donePulse {
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.12); }
+        }
+
+        .empty { font-size: 12px; opacity: 0.75; }
       </style>
+
       <div class="panel">
         <div class="header">
-          <div class="title">Timers</div>
+          <div>Timers</div>
           <div class="count" id="rt-count">0</div>
         </div>
+        <div class="divider"></div>
         <div class="list" id="rt-list"></div>
       </div>
     `;
@@ -191,8 +289,9 @@
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
     const s = totalSec % 60;
+
     if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-    return `${m}:${String(s).padStart(2, "0")}`;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
   function ensureTicking() {
@@ -219,9 +318,7 @@
 
       renderPanel();
 
-      if (newlyDone) {
-        await updateAlarmPlayback();
-      }
+      if (newlyDone) await updateAlarmPlayback();
 
       if (!hasRunning) {
         const stillRunning = timers.some(t => !t.done && !t.paused);
@@ -234,7 +331,7 @@
   }
 
   async function addTimer(seconds, label) {
-    createPanelIfNeeded();
+    await createPanelIfNeeded();
 
     const ms = seconds * 1000;
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2);
@@ -251,8 +348,6 @@
     renderPanel();
     ensureTicking();
 
-    // Prime audio permission path (best effort) after a user click.
-    // If it fails, it’s fine; later completion may still play if allowed.
     await updateAlarmPlayback();
   }
 
@@ -280,34 +375,37 @@
     destroyPanelIfEmpty();
   }
 
-  function renderPanel() {
-    if (!panelHost || !listEl || !countEl) return;
+function renderPanel() {
+  if (!panelHost || !listEl || !countEl) return;
 
-    countEl.textContent = String(timers.length);
+  countEl.textContent = String(timers.length);
 
-    const rows = timers.map(t => {
-      const cls = t.done ? "row done" : "row";
-      const timeText = formatMs(
-        t.done ? 0 : (t.paused ? t.remainingMs : Math.max(0, t.endTime - Date.now()))
-      );
-      const pauseText = t.paused ? "Resume" : "Pause";
-
-      return `
-        <div class="${cls}">
-          <div class="meta">
-            <div class="label">${escapeHtml(t.label)}</div>
-            <div class="time">${timeText}</div>
-          </div>
-          <div class="actions">
-            <button data-action="pause" data-id="${t.id}">${pauseText}</button>
-            <button class="danger" data-action="remove" data-id="${t.id}">X</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    listEl.innerHTML = rows;
+  if (timers.length === 0) {
+    listEl.innerHTML = `<div class="empty">Click a time to start a timer.</div>`;
+    return;
   }
+
+  listEl.innerHTML = timers.map((t) => {
+    const rowClass = t.done ? "row donePulse" : "row";
+    const timeText = formatMs(
+      t.done ? 0 : (t.paused ? t.remainingMs : Math.max(0, t.endTime - Date.now()))
+    );
+    const pauseText = t.paused ? "Resume" : "Pause";
+
+    return `
+      <div class="${rowClass}">
+        <div class="meta">
+          <div class="label">${escapeHtml(t.label)}</div>
+          <div class="time">${timeText}</div>
+        </div>
+        <div class="actions">
+          <button class="btn-pause" data-action="pause" data-id="${t.id}">${pauseText}</button>
+          <button class="btn-x" data-action="remove" data-id="${t.id}">X</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
 
   function escapeHtml(str) {
     return String(str)
@@ -336,7 +434,6 @@
 
     const normalized = raw.replace(/[–—]/g, "-");
 
-    // Range: default to upper bound
     const rangeMatch = normalized.match(
       /\b(\d+)\s*-\s*(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/i
     );
@@ -349,7 +446,6 @@
       return seconds;
     }
 
-    // Sequence: "1 hour 30 minutes", "1h 30m"
     const tokenRe = /(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
     let m;
     let total = 0;
@@ -448,10 +544,8 @@
     for (const node of nodes) processTextNode(node);
   }
 
-  // Initial scan
   scanAndLinkTimes();
 
-  // Start timer immediately on click (bubble-phase)
   document.addEventListener("click", (e) => {
     const el = e.target && e.target.closest ? e.target.closest(".rt-time") : null;
     if (!el) return;
@@ -460,7 +554,6 @@
     addTimer(seconds, el.textContent.trim());
   });
 
-  // Rescan dynamic pages
   let rescanTimer = null;
   const mo = new MutationObserver((mutations) => {
     for (const m of mutations) {
