@@ -4,13 +4,9 @@
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
+  user-select: none; /* prevent accidental selection */
 }
 
 .rt-time:hover {
   text-decoration-style: solid;
-}
-
-/* Prevent accidental text selection on rapid clicks */
-.rt-time {
-  user-select: none;
 }
