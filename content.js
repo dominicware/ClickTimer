@@ -140,19 +140,23 @@
         }
 
         .list {
-            padding: 10px 12px 12px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;              /* spacing between timers */
-            max-height: 240px;      /* optional: prevents panel growing too tall */
-            overflow: auto;         /* optional: scroll when many timers */  
+          padding: 10px 12px 12px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          max-height: 240px;
+          overflow: auto;
         }
 
+        /* --- Key change: split row into label row + digits row --- */
         .row {
           display: grid;
           grid-template-columns: 1fr auto;
-          gap: 10px;
+          grid-template-rows: auto auto;
+          column-gap: 10px;
+          row-gap: 6px;
           align-items: center;
+
           padding-bottom: 10px;
           border-bottom: 1px solid rgba(255,255,255,0.08);
         }
@@ -161,20 +165,27 @@
           border-bottom: none;
         }
 
-        .meta { min-width: 0; }
+        /* Let label/time participate in the 2-row grid */
+        .meta { display: contents; min-width: 0; }
 
         .label {
+          grid-column: 1;
+          grid-row: 1;
+
           font-size: clamp(14px, 2.4vw, 18px);
           font-weight: 650;
           letter-spacing: -0.02em;
           opacity: 0.92;
-          margin-bottom: 6px;
+
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .time {
+          grid-column: 1;
+          grid-row: 2;
+
           font-family: "DSEG7Classic", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
           font-variant-numeric: tabular-nums;
 
@@ -188,46 +199,63 @@
             0 5px 14px rgba(0,0,0,0.55);
         }
 
+        /* 2x2 character controls pinned to digits row (lower) */
         .actions {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          justify-content: flex-end;
+          grid-column: 2;
+          grid-row: 2;
+          align-self: center;
+          margin-bottom: 2px; /* or 1px */
+
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: 1fr 1fr;
+          gap: 0;
+          align-items: stretch;
+          justify-items: stretch;
         }
 
-        button {
+        .actions button {
           all: unset;
           cursor: pointer;
           user-select: none;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
 
-          height: clamp(30px, 5.4vw, 38px);
-          padding: 0 clamp(10px, 2.2vw, 12px);
+          display: grid;
+          place-items: center;
 
-          border-radius: 14px;
-          font-size: clamp(12px, 2.4vw, 16px);
-          font-weight: 650;
-          letter-spacing: -0.01em;
+          /* smaller hit area */
+          width: clamp(24px, 5.2vw, 30px);
+          height: clamp(24px, 5.2vw, 30px);
 
           color: rgba(255,255,255,0.92);
-          box-shadow:
-            0 8px 14px rgba(0,0,0,0.20),
-            0 2px 0 rgba(255,255,255,0.05) inset;
+          font-size: clamp(12px, 2.6vw, 14px);
+          font-weight: 700;
+          line-height: 1;
         }
 
-        button:active { transform: translateY(1px); }
+        .actions button:hover { background: rgba(255,255,255,0.06); }
+        .actions button:active { background: rgba(255,255,255,0.10); }
 
-        .btn-pause { background: rgba(255,255,255,0.10); }
-        .btn-pause:hover { background: rgba(255,255,255,0.14); }
+        /* Divider rules:
+           - Keep vertical divider between columns on BOTH rows: (+|X) and (-|pause)
+           - Keep horizontal divider ONLY under X (so there is NO divider between + and -)
+        */
+        .actions button:nth-child(1),
+        .actions button:nth-child(3) {
+          border-right: 1px solid rgba(255,255,255,0.10);
+        }
+
+        .actions button:nth-child(2) {
+          border-bottom: 1px solid rgba(255,255,255,0.10);
+        }
 
         .btn-x {
-          width: clamp(34px, 7.0vw, 40px);
-          padding: 0;
-          background: rgba(120, 55, 60, 0.65);
+          color: rgba(255, 180, 185, 0.95);
         }
-        .btn-x:hover { background: rgba(145, 60, 66, 0.75); }
+
+        .btn-icon {
+          font-weight: 800;
+          font-size: clamp(13px, 2.8vw, 15px);
+        }
 
         .donePulse { animation: donePulse 1.1s ease-in-out infinite; }
         @keyframes donePulse {
@@ -258,8 +286,11 @@
       const id = btn.getAttribute("data-id");
       if (!action || !id) return;
 
+      // + / - are UI-only for now (no-ops)
       if (action === "pause") togglePause(id);
       if (action === "remove") removeTimer(id);
+      if (action === "plus") return;
+      if (action === "minus") return;
     });
 
     renderPanel();
@@ -375,37 +406,42 @@
     destroyPanelIfEmpty();
   }
 
-function renderPanel() {
-  if (!panelHost || !listEl || !countEl) return;
+  function renderPanel() {
+    if (!panelHost || !listEl || !countEl) return;
 
-  countEl.textContent = String(timers.length);
+    countEl.textContent = String(timers.length);
 
-  if (timers.length === 0) {
-    listEl.innerHTML = `<div class="empty">Click a time to start a timer.</div>`;
-    return;
+    if (timers.length === 0) {
+      listEl.innerHTML = `<div class="empty">Click a time to start a timer.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = timers.map((t) => {
+      const rowClass = t.done ? "row donePulse" : "row";
+      const timeText = formatMs(
+        t.done ? 0 : (t.paused ? t.remainingMs : Math.max(0, t.endTime - Date.now()))
+      );
+
+      // Icon indicates the action available:
+      // running -> pause ("Ⅱ"), paused -> play ("▶")
+      const pauseIcon = t.paused ? "▶" : "Ⅱ";
+
+      return `
+        <div class="${rowClass}">
+          <div class="meta">
+            <div class="label">${escapeHtml(t.label)}</div>
+            <div class="time">${timeText}</div>
+          </div>
+          <div class="actions">
+            <button data-action="plus" data-id="${t.id}" aria-label="Add time">+</button>
+            <button class="btn-x" data-action="remove" data-id="${t.id}" aria-label="Remove timer">X</button>
+            <button data-action="minus" data-id="${t.id}" aria-label="Subtract time">−</button>
+            <button class="btn-icon" data-action="pause" data-id="${t.id}" aria-label="${t.paused ? "Resume" : "Pause"}">${pauseIcon}</button>
+          </div>
+        </div>
+      `;
+    }).join("");
   }
-
-  listEl.innerHTML = timers.map((t) => {
-    const rowClass = t.done ? "row donePulse" : "row";
-    const timeText = formatMs(
-      t.done ? 0 : (t.paused ? t.remainingMs : Math.max(0, t.endTime - Date.now()))
-    );
-    const pauseText = t.paused ? "Resume" : "Pause";
-
-    return `
-      <div class="${rowClass}">
-        <div class="meta">
-          <div class="label">${escapeHtml(t.label)}</div>
-          <div class="time">${timeText}</div>
-        </div>
-        <div class="actions">
-          <button class="btn-pause" data-action="pause" data-id="${t.id}">${pauseText}</button>
-          <button class="btn-x" data-action="remove" data-id="${t.id}">X</button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
 
   function escapeHtml(str) {
     return String(str)
