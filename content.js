@@ -103,7 +103,6 @@
         :host { all: initial; }
 
         .panel {
-          /* ~33% smaller than previous */
           width: min(320px, 86vw);
           border-radius: 20px;
           overflow: hidden;
@@ -148,13 +147,15 @@
           overflow: auto;
         }
 
-        /* --- Key change: split row into label row + digits row --- */
+        /* Two-row grid per timer: label row + digits row */
         .row {
           display: grid;
           grid-template-columns: 1fr auto;
           grid-template-rows: auto auto;
           column-gap: 10px;
           row-gap: 6px;
+
+          /* If you want digits+grid centered vertically relative to each other, keep this: */
           align-items: center;
 
           padding-bottom: 10px;
@@ -165,7 +166,7 @@
           border-bottom: none;
         }
 
-        /* Let label/time participate in the 2-row grid */
+        /* Let label/time participate directly in the row grid */
         .meta { display: contents; min-width: 0; }
 
         .label {
@@ -189,7 +190,6 @@
           font-family: "DSEG7Classic", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
           font-variant-numeric: tabular-nums;
 
-          /* ~33% smaller digits */
           font-size: clamp(30px, 7.2vw, 50px);
           line-height: 1;
 
@@ -199,12 +199,13 @@
             0 5px 14px rgba(0,0,0,0.55);
         }
 
-        /* 2x2 character controls pinned to digits row (lower) */
+        /* 2x2 character controls pinned to digits row */
         .actions {
           grid-column: 2;
           grid-row: 2;
+
+          /* center alongside digits (change to 'end' if you prefer bottom aligned) */
           align-self: center;
-          margin-bottom: 2px; /* or 1px */
 
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -222,7 +223,7 @@
           display: grid;
           place-items: center;
 
-          /* smaller hit area */
+          /* grid size (shrink/expand these) */
           width: clamp(24px, 5.2vw, 30px);
           height: clamp(24px, 5.2vw, 30px);
 
@@ -248,8 +249,17 @@
           border-bottom: 1px solid rgba(255,255,255,0.10);
         }
 
-        .btn-x {
-          color: rgba(255, 180, 185, 0.95);
+        /* X button red (specificity override) */
+        .actions button.btn-x {
+          color: rgb(220, 60, 60);
+        }
+
+        /* Optional: red-aware hover/active for X */
+        .actions button.btn-x:hover {
+          background: rgba(220, 60, 60, 0.15);
+        }
+        .actions button.btn-x:active {
+          background: rgba(220, 60, 60, 0.25);
         }
 
         .btn-icon {
@@ -422,8 +432,6 @@
         t.done ? 0 : (t.paused ? t.remainingMs : Math.max(0, t.endTime - Date.now()))
       );
 
-      // Icon indicates the action available:
-      // running -> pause ("Ⅱ"), paused -> play ("▶")
       const pauseIcon = t.paused ? "▶" : "Ⅱ";
 
       return `
