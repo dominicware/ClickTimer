@@ -306,11 +306,12 @@
       const id = btn.getAttribute("data-id");
       if (!action || !id) return;
 
-      // + / - are UI-only for now (no-ops)
       if (action === "pause") togglePause(id);
       if (action === "remove") removeTimer(id);
-      if (action === "plus") return;
-      if (action === "minus") return;
+
+      // +/- 1 minute (works while running or paused)
+      if (action === "plus") adjustTimerBySeconds(id, 60);
+      if (action === "minus") adjustTimerBySeconds(id, -60);
     });
 
     renderPanel();
@@ -379,6 +380,66 @@
         }
       }
     }, 1000);
+  }
+
+  function clamp(n, min, max) {
+    return Math.min(max, Math.max(min, n));
+  }
+
+  async function adjustTimerBySeconds(id, deltaSeconds) {
+    const t = timers.find(x => x.id === id);
+    if (!t) return;
+
+    const deltaMs = deltaSeconds * 1000;
+    const maxMs = MAX_SECONDS * 1000;
+
+    // If a timer is DONE and user adds time, revive it.
+    if (t.done) {
+      if (deltaMs <= 0) return; // ignore "-" on done timer
+      t.done = false;
+      t.paused = false;
+      t.remainingMs = clamp(deltaMs, 0, maxMs);
+      t.endTime = Date.now() + t.remainingMs;
+
+      renderPanel();
+      ensureTicking();
+      await updateAlarmPlayback();
+      return;
+    }
+
+    if (t.paused) {
+      // paused: adjust remainingMs directly
+      t.remainingMs = clamp(t.remainingMs + deltaMs, 0, maxMs);
+
+      if (t.remainingMs === 0) {
+        t.done = true;
+        t.paused = false;
+      }
+
+      renderPanel();
+      await updateAlarmPlayback();
+      return;
+    }
+
+    // running: adjust endTime (remaining follows automatically)
+    t.endTime = t.endTime + deltaMs;
+
+    const remaining = t.endTime - Date.now();
+    if (remaining <= 0) {
+      t.done = true;
+      t.remainingMs = 0;
+    } else {
+      t.remainingMs = clamp(remaining, 0, maxMs);
+
+      // If clamped, keep endTime consistent with the clamp.
+      if (t.remainingMs !== remaining) {
+        t.endTime = Date.now() + t.remainingMs;
+      }
+    }
+
+    renderPanel();
+    if (!t.done) ensureTicking();
+    await updateAlarmPlayback();
   }
 
   async function addTimer(seconds, label) {
@@ -451,9 +512,9 @@
             <div class="time">${timeText}</div>
           </div>
           <div class="actions">
-            <button data-action="plus" data-id="${t.id}" aria-label="Add time">+</button>
+            <button data-action="plus" data-id="${t.id}" aria-label="Add 1 minute">+</button>
             <button class="btn-x" data-action="remove" data-id="${t.id}" aria-label="Remove timer">X</button>
-            <button data-action="minus" data-id="${t.id}" aria-label="Subtract time">−</button>
+            <button data-action="minus" data-id="${t.id}" aria-label="Subtract 1 minute">−</button>
             <button class="btn-icon" data-action="pause" data-id="${t.id}" aria-label="${t.paused ? "Resume" : "Pause"}">${pauseIcon}</button>
           </div>
         </div>
