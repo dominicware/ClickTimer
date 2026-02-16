@@ -133,7 +133,7 @@
         }
 
         .logo {
-          height: 17px;
+          height: 15px;
           width: auto;
           display: block;
           opacity: 0.95;
