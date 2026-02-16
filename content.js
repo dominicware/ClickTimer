@@ -1,3 +1,4 @@
+// content.js
 (() => {
   // -----------------------------
   // Config
@@ -29,6 +30,10 @@
   const fontUrl = runtimeGetURL
     ? runtimeGetURL("assets/fonts/DSEG7Classic-Regular.woff2")
     : null;
+
+  const logoUrl = runtimeGetURL
+    ? runtimeGetURL("assets/clicktimer-logo.svg")
+    : "";
 
   // Alarm audio (loops until all DONE timers are dismissed)
   const alarmAudio = alarmUrl ? new Audio(alarmUrl) : null;
@@ -120,15 +125,22 @@
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 10px 12px;
+          padding: 6px 12px;
 
           font-size: clamp(12px, 2.8vw, 18px);
           font-weight: 400;
           letter-spacing: -0.02em;
         }
 
+        .logo {
+          height: 17px;
+          width: auto;
+          display: block;
+          opacity: 0.95;
+        }
+
         .count {
-          font-size: clamp(12px, 2.8vw, 18px);
+          font-size: clamp(9px, 2.1vw, 14px);
           font-weight: 400;
           opacity: 0.92;
         }
@@ -155,7 +167,7 @@
           column-gap: 10px;
           row-gap: 6px;
 
-          /* If you want digits+grid centered vertically relative to each other, keep this: */
+          /* digits + grid centered relative to each other */
           align-items: center;
 
           padding-bottom: 10px;
@@ -204,7 +216,6 @@
           grid-column: 2;
           grid-row: 2;
 
-          /* center alongside digits (change to 'end' if you prefer bottom aligned) */
           align-self: center;
 
           display: grid;
@@ -223,7 +234,6 @@
           display: grid;
           place-items: center;
 
-          /* grid size (shrink/expand these) */
           width: clamp(24px, 5.2vw, 30px);
           height: clamp(24px, 5.2vw, 30px);
 
@@ -278,7 +288,7 @@
 
       <div class="panel">
         <div class="header">
-          <div>Timers</div>
+          <img class="logo" src="${logoUrl}" alt="ClickTimer">
           <div class="count" id="rt-count">0</div>
         </div>
         <div class="divider"></div>

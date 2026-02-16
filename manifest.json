@@ -15,7 +15,8 @@
     {
       "resources": [
         "assets/alarm.mp3",
-        "assets/fonts/DSEG7Classic-Regular.woff2"
+        "assets/fonts/DSEG7Classic-Regular.woff2",
+        "assets/clicktimer-logo.svg"
       ],
       "matches": ["<all_urls>"]
     }
