@@ -121,6 +121,56 @@
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
 
+        /* --- Compact-by-default, expand-on-hover --- */
+        .panel {
+          width: min(240px, 86vw); /* compact width */
+          transition: width 160ms ease, box-shadow 160ms ease;
+        }
+
+        .panel:hover {
+          width: min(320px, 86vw); /* expanded width */
+        }
+
+        /* Hide controls when not hovered */
+        .panel:not(:hover) .actions {
+          opacity: 0;
+          pointer-events: none;
+          transform: translateX(8px);
+        }
+
+        /* Fade controls in on hover */
+        .actions {
+          transition: opacity 140ms ease, transform 140ms ease;
+        }
+
+        /* Hide label row when compact */
+        .panel:not(:hover) .label {
+          display: none;
+        }
+
+        /* Collapse row to single-line height in compact mode */
+        .panel:not(:hover) .row {
+          grid-template-rows: auto;
+          row-gap: 0;
+          padding-bottom: 0;
+          border-bottom: none;
+        }
+
+        /* Move time up when compact */
+        .panel:not(:hover) .time {
+          grid-row: 1;
+        }
+
+        /* Keep actions aligned with the time row (even though hidden) */
+        .panel:not(:hover) .actions {
+          grid-row: 1;
+        }
+
+        /* Reduce list bottom padding in compact mode to remove whitespace */
+        .panel:not(:hover) .list {
+          padding-bottom: 4px;
+        }
+
         .header {
           display: flex;
           align-items: center;
@@ -167,7 +217,6 @@
           column-gap: 10px;
           row-gap: 6px;
 
-          /* digits + grid centered relative to each other */
           align-items: center;
 
           padding-bottom: 10px;
@@ -178,7 +227,6 @@
           border-bottom: none;
         }
 
-        /* Let label/time participate directly in the row grid */
         .meta { display: contents; min-width: 0; }
 
         .label {
@@ -246,10 +294,6 @@
         .actions button:hover { background: rgba(255,255,255,0.06); }
         .actions button:active { background: rgba(255,255,255,0.10); }
 
-        /* Divider rules:
-           - Keep vertical divider between columns on BOTH rows: (+|X) and (-|pause)
-           - Keep horizontal divider ONLY under X (so there is NO divider between + and -)
-        */
         .actions button:nth-child(1),
         .actions button:nth-child(3) {
           border-right: 1px solid rgba(255,255,255,0.10);
@@ -259,12 +303,10 @@
           border-bottom: 1px solid rgba(255,255,255,0.10);
         }
 
-        /* X button red (specificity override) */
         .actions button.btn-x {
           color: rgb(220, 60, 60);
         }
 
-        /* Optional: red-aware hover/active for X */
         .actions button.btn-x:hover {
           background: rgba(220, 60, 60, 0.15);
         }
