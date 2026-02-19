@@ -83,6 +83,7 @@
   // -----------------------------
   let panelHost = null;
   let shadow = null;
+  let panelEl = null;
   let listEl = null;
   let countEl = null;
 
@@ -108,7 +109,6 @@
         :host { all: initial; }
 
         .panel {
-          width: min(320px, 86vw);
           border-radius: 20px;
           overflow: hidden;
 
@@ -121,14 +121,21 @@
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
 
-        /* --- Compact-by-default, expand-on-hover --- */
+        /* --- Compact-by-default, expand-on-hover + dynamic width --- */
         .panel {
-          width: min(240px, 86vw); /* compact width */
+          width: min(220px, 86vw); /* default (mm:ss) */
           transition: width 160ms ease, box-shadow 160ms ease;
         }
-
         .panel:hover {
-          width: min(320px, 86vw); /* expanded width */
+          width: min(300px, 86vw); /* expanded (mm:ss) */
+        }
+
+        /* Wider when any running/paused timer is >= 1 hour */
+        .panel.rt-has-hours {
+          width: min(240px, 86vw);
+        }
+        .panel.rt-has-hours:hover {
+          width: min(320px, 86vw);
         }
 
         /* Hide controls when not hovered */
@@ -148,12 +155,16 @@
           display: none;
         }
 
-        /* Collapse row to single-line height in compact mode */
+        /* Collapse row height in compact mode */
         .panel:not(:hover) .row {
           grid-template-rows: auto;
           row-gap: 0;
-          padding-bottom: 0;
+          padding-bottom: 6px; /* small breathing room above the line */
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .panel:not(:hover) .row:last-child {
           border-bottom: none;
+          padding-bottom: 0;
         }
 
         /* Move time up when compact */
@@ -161,7 +172,7 @@
           grid-row: 1;
         }
 
-        /* Keep actions aligned with the time row (even though hidden) */
+        /* Keep actions aligned with time row (even though hidden) */
         .panel:not(:hover) .actions {
           grid-row: 1;
         }
@@ -227,6 +238,7 @@
           border-bottom: none;
         }
 
+        /* Let label/time participate directly in the row grid */
         .meta { display: contents; min-width: 0; }
 
         .label {
@@ -294,6 +306,7 @@
         .actions button:hover { background: rgba(255,255,255,0.06); }
         .actions button:active { background: rgba(255,255,255,0.10); }
 
+        /* Divider rules */
         .actions button:nth-child(1),
         .actions button:nth-child(3) {
           border-right: 1px solid rgba(255,255,255,0.10);
@@ -303,6 +316,7 @@
           border-bottom: 1px solid rgba(255,255,255,0.10);
         }
 
+        /* X button red */
         .actions button.btn-x {
           color: rgb(220, 60, 60);
         }
@@ -338,6 +352,7 @@
       </div>
     `;
 
+    panelEl = shadow.querySelector(".panel");
     listEl = shadow.getElementById("rt-list");
     countEl = shadow.getElementById("rt-count");
 
@@ -371,6 +386,7 @@
 
     panelHost = null;
     shadow = null;
+    panelEl = null;
     listEl = null;
     countEl = null;
   }
@@ -531,6 +547,18 @@
 
   function renderPanel() {
     if (!panelHost || !listEl || !countEl) return;
+
+    // Toggle width class depending on whether any active timer is >= 1 hour remaining.
+    // (Paused timers use remainingMs; running timers use endTime - now; DONE timers ignored.)
+    if (panelEl) {
+      const now = Date.now();
+      const needsHours = timers.some(t => {
+        if (t.done) return false;
+        const remaining = t.paused ? t.remainingMs : (t.endTime - now);
+        return remaining >= 3600 * 1000;
+      });
+      panelEl.classList.toggle("rt-has-hours", needsHours);
+    }
 
     countEl.textContent = String(timers.length);
 
