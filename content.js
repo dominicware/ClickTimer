@@ -109,8 +109,10 @@
         :host { all: initial; }
 
         .panel {
+          width: min(220px, 86vw); /* compact (mm:ss) */
           border-radius: 20px;
           overflow: hidden;
+          transition: width 160ms ease, box-shadow 160ms ease;
 
           color: rgba(255,255,255,0.96);
           background: linear-gradient(180deg, rgba(45,45,45,0.96) 0%, rgba(30,30,30,0.96) 100%);
@@ -121,65 +123,16 @@
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
 
-        /* --- Compact-by-default, expand-on-hover + dynamic width --- */
-        .panel {
-          width: min(220px, 86vw); /* default (mm:ss) */
-          transition: width 160ms ease, box-shadow 160ms ease;
-        }
         .panel:hover {
           width: min(300px, 86vw); /* expanded (mm:ss) */
         }
 
-        /* Wider when any running/paused timer is >= 1 hour */
+        /* Wider when any active timer is >= 1 hour */
         .panel.rt-has-hours {
           width: min(240px, 86vw);
         }
         .panel.rt-has-hours:hover {
           width: min(320px, 86vw);
-        }
-
-        /* Hide controls when not hovered */
-        .panel:not(:hover) .actions {
-          opacity: 0;
-          pointer-events: none;
-          transform: translateX(8px);
-        }
-
-        /* Fade controls in on hover */
-        .actions {
-          transition: opacity 140ms ease, transform 140ms ease;
-        }
-
-        /* Hide label row when compact */
-        .panel:not(:hover) .label {
-          display: none;
-        }
-
-        /* Collapse row height in compact mode */
-        .panel:not(:hover) .row {
-          grid-template-rows: auto;
-          row-gap: 0;
-          padding-bottom: 6px; /* small breathing room above the line */
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .panel:not(:hover) .row:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-
-        /* Move time up when compact */
-        .panel:not(:hover) .time {
-          grid-row: 1;
-        }
-
-        /* Keep actions aligned with time row (even though hidden) */
-        .panel:not(:hover) .actions {
-          grid-row: 1;
-        }
-
-        /* Reduce list bottom padding in compact mode to remove whitespace */
-        .panel:not(:hover) .list {
-          padding-bottom: 4px;
         }
 
         .header {
@@ -306,7 +259,10 @@
         .actions button:hover { background: rgba(255,255,255,0.06); }
         .actions button:active { background: rgba(255,255,255,0.10); }
 
-        /* Divider rules */
+        /* Divider rules:
+           - Keep vertical divider between columns on BOTH rows: (+|X) and (-|pause)
+           - Keep horizontal divider ONLY under X (so there is NO divider between + and -)
+        */
         .actions button:nth-child(1),
         .actions button:nth-child(3) {
           border-right: 1px solid rgba(255,255,255,0.10);
@@ -316,7 +272,7 @@
           border-bottom: 1px solid rgba(255,255,255,0.10);
         }
 
-        /* X button red */
+        /* X button red (specificity override) */
         .actions button.btn-x {
           color: rgb(220, 60, 60);
         }
@@ -331,6 +287,50 @@
         .btn-icon {
           font-weight: 800;
           font-size: clamp(13px, 2.8vw, 15px);
+        }
+
+        /* ---------- COMPACT MODE (not hovered) ---------- */
+
+        /* Hide label in compact mode */
+        .panel:not(:hover) .label {
+          display: none;
+        }
+
+        /* Remove the actions column entirely so time can truly center */
+        .panel:not(:hover) .actions {
+          display: none;
+        }
+
+        /* Collapse to one column and center the time */
+        .panel:not(:hover) .row {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto;
+          column-gap: 0;
+          row-gap: 0;
+
+          /* keep separators between timers */
+          padding-bottom: 6px;
+        }
+
+        .panel:not(:hover) .time {
+          grid-column: 1;
+          grid-row: 1;
+          justify-self: center;
+          text-align: center;
+        }
+
+        .panel:not(:hover) .header {
+          padding: 6px 12px 6px 12px;
+        }
+
+        /* Reduce bottom padding so compact height is tight */
+        .panel:not(:hover) .list {
+          padding: 6px 8px 6px 8px;
+        }
+
+        .panel:not(:hover) {
+          width: fit-content;
+          min-width: 0;
         }
 
         .donePulse { animation: donePulse 1.1s ease-in-out infinite; }
@@ -548,8 +548,7 @@
   function renderPanel() {
     if (!panelHost || !listEl || !countEl) return;
 
-    // Toggle width class depending on whether any active timer is >= 1 hour remaining.
-    // (Paused timers use remainingMs; running timers use endTime - now; DONE timers ignored.)
+    // Dynamic width: if any active (running/paused) timer is >= 1 hour, widen.
     if (panelEl) {
       const now = Date.now();
       const needsHours = timers.some(t => {
