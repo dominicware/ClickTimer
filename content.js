@@ -109,7 +109,7 @@
         :host { all: initial; }
 
         .panel {
-          width: min(220px, 86vw); /* compact (mm:ss) */
+          width: min(220px, 86vw);
           border-radius: 20px;
           overflow: hidden;
           transition: width 160ms ease, box-shadow 160ms ease;
@@ -124,15 +124,14 @@
         }
 
         .panel:hover {
-          width: min(300px, 86vw); /* expanded (mm:ss) */
+          width: fit-content;
         }
 
-        /* Wider when any active timer is >= 1 hour */
         .panel.rt-has-hours {
           width: min(240px, 86vw);
         }
         .panel.rt-has-hours:hover {
-          width: min(320px, 86vw);
+          width: fit-content;
         }
 
         .header {
@@ -173,7 +172,6 @@
           overflow: auto;
         }
 
-        /* Two-row grid per timer: label row + digits row */
         .row {
           display: grid;
           grid-template-columns: 1fr auto;
@@ -191,7 +189,6 @@
           border-bottom: none;
         }
 
-        /* Let label/time participate directly in the row grid */
         .meta { display: contents; min-width: 0; }
 
         .label {
@@ -224,7 +221,6 @@
             0 5px 14px rgba(0,0,0,0.55);
         }
 
-        /* 2x2 character controls pinned to digits row */
         .actions {
           grid-column: 2;
           grid-row: 2;
@@ -232,8 +228,8 @@
           align-self: center;
 
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          grid-template-rows: 1fr 1fr;
+          grid-template-columns: auto auto;
+          grid-template-rows: auto auto;
           gap: 0;
           align-items: stretch;
           justify-items: stretch;
@@ -259,10 +255,6 @@
         .actions button:hover { background: rgba(255,255,255,0.06); }
         .actions button:active { background: rgba(255,255,255,0.10); }
 
-        /* Divider rules:
-           - Keep vertical divider between columns on BOTH rows: (+|X) and (-|pause)
-           - Keep horizontal divider ONLY under X (so there is NO divider between + and -)
-        */
         .actions button:nth-child(1),
         .actions button:nth-child(3) {
           border-right: 1px solid rgba(255,255,255,0.10);
@@ -272,7 +264,6 @@
           border-bottom: 1px solid rgba(255,255,255,0.10);
         }
 
-        /* X button red (specificity override) */
         .actions button.btn-x {
           color: rgb(220, 60, 60);
         }
@@ -291,24 +282,19 @@
 
         /* ---------- COMPACT MODE (not hovered) ---------- */
 
-        /* Hide label in compact mode */
         .panel:not(:hover) .label {
           display: none;
         }
 
-        /* Remove the actions column entirely so time can truly center */
         .panel:not(:hover) .actions {
           display: none;
         }
 
-        /* Collapse to one column and center the time */
         .panel:not(:hover) .row {
           grid-template-columns: 1fr;
           grid-template-rows: auto;
           column-gap: 0;
           row-gap: 0;
-
-          /* keep separators between timers */
           padding-bottom: 6px;
         }
 
@@ -319,13 +305,12 @@
           text-align: center;
         }
 
-        .panel:not(:hover) .header {
-          padding: 6px 12px 6px 12px;
-        }
-
-        /* Reduce bottom padding so compact height is tight */
         .panel:not(:hover) .list {
           padding: 6px 8px 6px 8px;
+        }
+
+        .panel:not(:hover) .header {
+          padding: 6px 12px 6px 12px;
         }
 
         .panel:not(:hover) {
