@@ -13,10 +13,20 @@
   const RESCAN_DEBOUNCE_MS = 500;
 
   const CANDIDATE_RE =
-    /(?:\b\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)(?:\s+\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)*|\b\d+\s*[-–—]\s*\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
+    /(?:\b\d+(?:\s+\d+\/\d+)?\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)(?:\s+\d+(?:\s+\d+\/\d+)?\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)*|\b\d+\s*[-–—]\s*\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
 
   const TIME_OF_DAY_RE = /\b\d{1,2}:\d{2}\b/;
   const TEMP_RE = /°\s*[CF]?\b/i;
+
+  const WRITTEN_NUMBERS = {
+    "another": 1, "a": 1, "an": 1,
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12, "fifteen": 15, "twenty": 20,
+    "thirty": 30, "forty": 40, "forty-five": 45, "sixty": 60
+  };
+
+  const WRITTEN_RE = /\b(another|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty-five|forty|sixty)\s*(hours?|hr|hrs|minutes?|mins?|min|seconds?|secs?|sec)\b/gi;
 
   // -----------------------------
   // Assets
@@ -362,7 +372,6 @@
       if (action === "pause") togglePause(id);
       if (action === "remove") removeTimer(id);
 
-      // +/- 1 minute (works while running or paused)
       if (action === "plus") adjustTimerBySeconds(id, 60);
       if (action === "minus") adjustTimerBySeconds(id, -60);
     });
@@ -447,9 +456,8 @@
     const deltaMs = deltaSeconds * 1000;
     const maxMs = MAX_SECONDS * 1000;
 
-    // If a timer is DONE and user adds time, revive it.
     if (t.done) {
-      if (deltaMs <= 0) return; // ignore "-" on done timer
+      if (deltaMs <= 0) return;
       t.done = false;
       t.paused = false;
       t.remainingMs = clamp(deltaMs, 0, maxMs);
@@ -462,7 +470,6 @@
     }
 
     if (t.paused) {
-      // paused: adjust remainingMs directly
       t.remainingMs = clamp(t.remainingMs + deltaMs, 0, maxMs);
 
       if (t.remainingMs === 0) {
@@ -475,7 +482,6 @@
       return;
     }
 
-    // running: adjust endTime (remaining follows automatically)
     t.endTime = t.endTime + deltaMs;
 
     const remaining = t.endTime - Date.now();
@@ -485,7 +491,6 @@
     } else {
       t.remainingMs = clamp(remaining, 0, maxMs);
 
-      // If clamped, keep endTime consistent with the clamp.
       if (t.remainingMs !== remaining) {
         t.endTime = Date.now() + t.remainingMs;
       }
@@ -544,7 +549,6 @@
   function renderPanel() {
     if (!panelHost || !listEl || !countEl) return;
 
-    // Dynamic width: if any active (running/paused) timer is >= 1 hour, widen.
     if (panelEl) {
       const now = Date.now();
       const needsHours = timers.some(t => {
@@ -626,14 +630,17 @@
       return seconds;
     }
 
-    const tokenRe = /(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
+    const tokenRe = /(\d+)(?:\s+(\d+)\/(\d+))?\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
     let m;
     let total = 0;
     let found = 0;
 
     while ((m = tokenRe.exec(normalized)) !== null) {
-      const n = parseInt(m[1], 10);
-      const unit = unitToSeconds(m[2]);
+      let n = parseInt(m[1], 10);
+      if (m[2] && m[3]) {
+        n += parseInt(m[2], 10) / parseInt(m[3], 10);
+      }
+      const unit = unitToSeconds(m[4]);
       if (!unit) continue;
       total += n * unit;
       found++;
@@ -670,26 +677,47 @@
   function processTextNode(textNode) {
     const text = textNode.nodeValue;
     if (!text) return;
-    if (!/\d/.test(text)) return;
+    if (!/\d/.test(text) && !WRITTEN_RE.test(text)) return;
     if (text.length > 2000) return;
 
     CANDIDATE_RE.lastIndex = 0;
+    WRITTEN_RE.lastIndex = 0;
+
+    const allMatches = [];
+
     let match;
+    while ((match = CANDIDATE_RE.exec(text)) !== null) {
+      allMatches.push({ index: match.index, text: match[0], seconds: null });
+    }
+
+    while ((match = WRITTEN_RE.exec(text)) !== null) {
+      const word = match[1].toLowerCase();
+      const n = WRITTEN_NUMBERS[word];
+      const unit = unitToSeconds(match[2]);
+      if (n && unit) {
+        const seconds = n * unit;
+        if (seconds >= MIN_SECONDS && seconds <= MAX_SECONDS) {
+          allMatches.push({ index: match.index, text: match[0], seconds });
+        }
+      }
+    }
+
+    allMatches.sort((a, b) => a.index - b.index);
+
     let lastIndex = 0;
     const frag = document.createDocumentFragment();
     let changed = false;
 
-    while ((match = CANDIDATE_RE.exec(text)) !== null) {
-      const start = match.index;
-      const end = start + match[0].length;
+    for (const m of allMatches) {
+      const start = m.index;
+      const end = start + m.text.length;
       if (start < lastIndex) continue;
 
-      const candidate = match[0];
-      const seconds = parseDurationText(candidate);
+      const seconds = m.seconds !== null ? m.seconds : parseDurationText(m.text);
       if (seconds == null) continue;
 
       if (start > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
-      frag.appendChild(makeClickableSpan(candidate, seconds));
+      frag.appendChild(makeClickableSpan(m.text, seconds));
       lastIndex = end;
       changed = true;
     }
@@ -709,7 +737,8 @@
       {
         acceptNode(node) {
           if (!node || !node.nodeValue) return NodeFilter.FILTER_REJECT;
-          if (!node.nodeValue.match(/\d/)) return NodeFilter.FILTER_REJECT;
+          if (!node.nodeValue.match(/\d/) && !WRITTEN_RE.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+          WRITTEN_RE.lastIndex = 0;
           if (isBlacklistedNode(node)) return NodeFilter.FILTER_REJECT;
           const p = node.parentElement;
           if (p && p.classList && p.classList.contains("rt-time")) return NodeFilter.FILTER_REJECT;
@@ -726,9 +755,21 @@
 
   scanAndLinkTimes();
 
+  let mouseDownX = 0;
+  let mouseDownY = 0;
+
+  document.addEventListener("mousedown", (e) => {
+    mouseDownX = e.clientX;
+    mouseDownY = e.clientY;
+  });
+
   document.addEventListener("click", (e) => {
     const el = e.target && e.target.closest ? e.target.closest(".rt-time") : null;
     if (!el) return;
+    const dx = e.clientX - mouseDownX;
+    const dy = e.clientY - mouseDownY;
+    if (Math.sqrt(dx * dx + dy * dy) > 4) return;
+    if (window.getSelection && window.getSelection().toString().length > 0) return;
     const seconds = parseInt(el.getAttribute("data-rt-seconds") || "", 10);
     if (!Number.isFinite(seconds) || seconds <= 0) return;
     addTimer(seconds, el.textContent.trim());
