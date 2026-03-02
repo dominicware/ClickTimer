@@ -109,10 +109,11 @@
         :host { all: initial; }
 
         .panel {
-          width: min(220px, 86vw);
+          width: fit-content;
+          max-width: min(220px, 86vw);
           border-radius: 20px;
           overflow: hidden;
-          transition: width 160ms ease, box-shadow 160ms ease;
+          transition: max-width 160ms ease 160ms, box-shadow 160ms ease;
 
           color: rgba(255,255,255,0.96);
           background: linear-gradient(180deg, rgba(45,45,45,0.96) 0%, rgba(30,30,30,0.96) 100%);
@@ -124,14 +125,15 @@
         }
 
         .panel:hover {
-          width: fit-content;
+          max-width: min(300px, 86vw);
+          transition: max-width 160ms ease 0ms, box-shadow 160ms ease;
         }
 
         .panel.rt-has-hours {
-          width: min(240px, 86vw);
+          max-width: min(240px, 86vw);
         }
         .panel.rt-has-hours:hover {
-          width: fit-content;
+          max-width: min(320px, 86vw);
         }
 
         .header {
@@ -198,11 +200,20 @@
           font-size: clamp(14px, 2.4vw, 18px);
           font-weight: 650;
           letter-spacing: -0.02em;
-          opacity: 0.92;
+          opacity: 0;
+          transition: opacity 160ms ease;
 
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        .panel:hover .label {
+          opacity: 0.92;
+        }
+
+        .panel:not(:hover) .label {
+          display: none;
         }
 
         .time {
@@ -219,6 +230,8 @@
           text-shadow:
             0 0 10px rgba(255,255,255,0.16),
             0 5px 14px rgba(0,0,0,0.55);
+
+          justify-self: end;
         }
 
         .actions {
@@ -233,6 +246,17 @@
           gap: 0;
           align-items: stretch;
           justify-items: stretch;
+
+          opacity: 0;
+          transition: opacity 160ms ease;
+        }
+
+        .panel:hover .actions {
+          opacity: 1;
+        }
+
+        .panel:not(:hover) .actions {
+          display: none;
         }
 
         .actions button {
@@ -282,14 +306,6 @@
 
         /* ---------- COMPACT MODE (not hovered) ---------- */
 
-        .panel:not(:hover) .label {
-          display: none;
-        }
-
-        .panel:not(:hover) .actions {
-          display: none;
-        }
-
         .panel:not(:hover) .row {
           grid-template-columns: 1fr;
           grid-template-rows: auto;
@@ -311,11 +327,6 @@
 
         .panel:not(:hover) .header {
           padding: 6px 12px 6px 12px;
-        }
-
-        .panel:not(:hover) {
-          width: fit-content;
-          min-width: 0;
         }
 
         .donePulse { animation: donePulse 1.1s ease-in-out infinite; }
