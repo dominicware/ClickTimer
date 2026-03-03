@@ -89,6 +89,52 @@
   }
 
   // -----------------------------
+  // Draggable
+  // -----------------------------
+  function makeDraggable(host, shadow) {
+    let dragging = false;
+    let startX, startY, startLeft, startTop;
+
+    function initPosition() {
+      const rect = host.getBoundingClientRect();
+      host.style.left = rect.left + "px";
+      host.style.top = rect.top + "px";
+      host.style.right = "auto";
+      host.style.bottom = "auto";
+    }
+
+    shadow.querySelector(".panel").addEventListener("mousedown", (e) => {
+      if (e.target && e.target.closest && e.target.closest("button")) return;
+
+      dragging = true;
+      if (!host.style.left || host.style.left === "auto") initPosition();
+
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = parseInt(host.style.left, 10);
+      startTop = parseInt(host.style.top, 10);
+
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      const newLeft = Math.max(0, Math.min(window.innerWidth - host.offsetWidth, startLeft + dx));
+      const newTop = Math.max(0, Math.min(window.innerHeight - host.offsetHeight, startTop + dy));
+
+      host.style.left = newLeft + "px";
+      host.style.top = newTop + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+      dragging = false;
+    });
+  }
+
+  // -----------------------------
   // Panel lifecycle (lazy create / auto-destroy)
   // -----------------------------
   let panelHost = null;
@@ -151,10 +197,15 @@
           align-items: center;
           justify-content: space-between;
           padding: 6px 12px;
+          cursor: grab;
 
           font-size: clamp(12px, 2.8vw, 18px);
           font-weight: 400;
           letter-spacing: -0.02em;
+        }
+
+        .header:active {
+          cursor: grabbing;
         }
 
         .logo {
@@ -377,6 +428,7 @@
     });
 
     renderPanel();
+    makeDraggable(panelHost, shadow);
   }
 
   function destroyPanelIfEmpty() {
