@@ -89,30 +89,47 @@
   }
 
   // -----------------------------
-  // Draggable
+  // Draggable (corner-anchored)
   // -----------------------------
   function makeDraggable(host, shadow) {
     let dragging = false;
     let startX, startY, startLeft, startTop;
 
-    function initPosition() {
+    function applyCornerAnchor() {
       const rect = host.getBoundingClientRect();
-      host.style.left = rect.left + "px";
-      host.style.top = rect.top + "px";
-      host.style.right = "auto";
-      host.style.bottom = "auto";
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const fromLeft = rect.left;
+      const fromRight = vw - rect.right;
+      const fromTop = rect.top;
+      const fromBottom = vh - rect.bottom;
+
+      const anchorRight = fromRight < fromLeft;
+      const anchorBottom = fromBottom < fromTop;
+
+      host.style.left = anchorRight ? "auto" : rect.left + "px";
+      host.style.right = anchorRight ? fromRight + "px" : "auto";
+      host.style.top = anchorBottom ? "auto" : rect.top + "px";
+      host.style.bottom = anchorBottom ? fromBottom + "px" : "auto";
     }
 
     shadow.querySelector(".panel").addEventListener("mousedown", (e) => {
       if (e.target && e.target.closest && e.target.closest("button")) return;
 
       dragging = true;
-      if (!host.style.left || host.style.left === "auto") initPosition();
+
+      // Convert to left/top for drag math
+      const rect = host.getBoundingClientRect();
+      host.style.left = rect.left + "px";
+      host.style.top = rect.top + "px";
+      host.style.right = "auto";
+      host.style.bottom = "auto";
 
       startX = e.clientX;
       startY = e.clientY;
-      startLeft = parseInt(host.style.left, 10);
-      startTop = parseInt(host.style.top, 10);
+      startLeft = rect.left;
+      startTop = rect.top;
 
       e.preventDefault();
     });
@@ -130,7 +147,15 @@
     });
 
     document.addEventListener("mouseup", () => {
+      if (!dragging) return;
       dragging = false;
+      // Re-anchor to nearest corner after drag ends
+      applyCornerAnchor();
+    });
+
+    // Re-anchor on window resize so panel doesn't go off screen
+    window.addEventListener("resize", () => {
+      if (!dragging) applyCornerAnchor();
     });
   }
 
