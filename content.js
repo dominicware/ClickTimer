@@ -830,8 +830,9 @@
     for (const node of nodes) processTextNode(node);
   }
 
-  scanAndLinkTimes();
-
+  // -----------------------------
+  // Click handling
+  // -----------------------------
   let mouseDownX = 0;
   let mouseDownY = 0;
 
@@ -852,6 +853,9 @@
     addTimer(seconds, el.textContent.trim());
   });
 
+  // -----------------------------
+  // MutationObserver
+  // -----------------------------
   let rescanTimer = null;
   const mo = new MutationObserver((mutations) => {
     for (const m of mutations) {
@@ -863,5 +867,34 @@
     rescanTimer = setTimeout(() => scanAndLinkTimes(), RESCAN_DEBOUNCE_MS);
   });
 
-  mo.observe(document.documentElement, { childList: true, subtree: true });
+  // -----------------------------
+  // Enable / disable messaging
+  // -----------------------------
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.action !== 'setEnabled') return;
+
+    if (msg.enabled) {
+      // Re-scan the page to make times clickable again
+      scanAndLinkTimes();
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } else {
+      // Stop observing and strip all rt-time spans, restoring original text
+      mo.disconnect();
+      document.querySelectorAll('.rt-time').forEach(span => {
+        span.replaceWith(document.createTextNode(span.textContent));
+      });
+    }
+  });
+
+  // -----------------------------
+  // Initialise (respects saved toggle state)
+  // -----------------------------
+  chrome.storage.local.get(['enabled'], (result) => {
+    const isEnabled = result.enabled !== false; // default true
+    if (isEnabled) {
+      scanAndLinkTimes();
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  });
+
 })();
