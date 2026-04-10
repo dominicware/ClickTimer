@@ -28,6 +28,10 @@
 
   const WRITTEN_RE = /\b(another|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty-five|forty|sixty)\s*(hours?|hr|hrs|minutes?|mins?|min|seconds?|secs?|sec)\b/gi;
 
+  // Matches "4-5 minutes", "4 to 5 minutes" etc.
+  // Groups: [1] lower number, [2] separator (e.g. "-" or "to"), [3] upper number, [4] unit
+  const RANGE_RE = /\b(\d+)\s*([-–—]|to)\s*(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
+
   // -----------------------------
   // Assets
   // -----------------------------
@@ -822,22 +826,70 @@
 
     CANDIDATE_RE.lastIndex = 0;
     WRITTEN_RE.lastIndex = 0;
+    RANGE_RE.lastIndex = 0;
 
+    // Each entry is either a simple match or a range match (two spans)
     const allMatches = [];
 
+    // Collect range matches first — these take priority over CANDIDATE_RE
+    const rangeIndexes = new Set();
     let match;
-    while ((match = CANDIDATE_RE.exec(text)) !== null) {
-      allMatches.push({ index: match.index, text: match[0], seconds: null });
+    while ((match = RANGE_RE.exec(text)) !== null) {
+      const lower = parseInt(match[1], 10);
+      const sep = match[2];
+      const upper = parseInt(match[3], 10);
+      const unit = unitToSeconds(match[4]);
+      if (!unit) continue;
+
+      const lowerSec = lower * unit;
+      const upperSec = upper * unit;
+      if (upperSec < MIN_SECONDS || upperSec > MAX_SECONDS) continue;
+      if (lowerSec < MIN_SECONDS || lowerSec > MAX_SECONDS) continue;
+
+      const fullStart = match.index;
+      const fullText = match[0];
+
+      // Lower number span: just the digit(s)
+      const lowerText = match[1];
+      const lowerEnd = fullStart + lowerText.length;
+
+      // Separator text (with surrounding whitespace) from the full match
+      const afterLower = fullText.slice(lowerText.length);
+      const sepMatchResult = afterLower.match(/^(\s*(?:[-–—]|to)\s*)/);
+      const sepText = sepMatchResult ? sepMatchResult[1] : ` ${sep} `;
+      const sepEnd = lowerEnd + sepText.length;
+
+      // Upper number + unit span: remainder of full match
+      const upperText = fullText.slice(lowerText.length + sepText.length);
+
+      allMatches.push({
+        index: fullStart,
+        end: fullStart + fullText.length,
+        isRange: true,
+        lowerText, lowerSec,
+        sepText,
+        upperText, upperSec
+      });
+
+      for (let i = fullStart; i < fullStart + fullText.length; i++) rangeIndexes.add(i);
     }
 
+    // Collect regular CANDIDATE_RE matches, skipping any covered by a range
+    while ((match = CANDIDATE_RE.exec(text)) !== null) {
+      if (rangeIndexes.has(match.index)) continue;
+      allMatches.push({ index: match.index, end: match.index + match[0].length, text: match[0], seconds: null });
+    }
+
+    // Collect written-number matches, skipping any covered by a range
     while ((match = WRITTEN_RE.exec(text)) !== null) {
+      if (rangeIndexes.has(match.index)) continue;
       const word = match[1].toLowerCase();
       const n = WRITTEN_NUMBERS[word];
       const unit = unitToSeconds(match[2]);
       if (n && unit) {
         const seconds = n * unit;
         if (seconds >= MIN_SECONDS && seconds <= MAX_SECONDS) {
-          allMatches.push({ index: match.index, text: match[0], seconds });
+          allMatches.push({ index: match.index, end: match.index + match[0].length, text: match[0], seconds });
         }
       }
     }
@@ -850,16 +902,24 @@
 
     for (const m of allMatches) {
       const start = m.index;
-      const end = start + m.text.length;
+      const end = m.end;
       if (start < lastIndex) continue;
 
-      const seconds = m.seconds !== null ? m.seconds : parseDurationText(m.text);
-      if (seconds == null) continue;
-
-      if (start > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
-      frag.appendChild(makeClickableSpan(m.text, seconds));
-      lastIndex = end;
-      changed = true;
+      if (m.isRange) {
+        if (start > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+        frag.appendChild(makeClickableSpan(m.lowerText, m.lowerSec));
+        frag.appendChild(document.createTextNode(m.sepText));
+        frag.appendChild(makeClickableSpan(m.upperText, m.upperSec));
+        lastIndex = end;
+        changed = true;
+      } else {
+        const seconds = m.seconds !== null ? m.seconds : parseDurationText(m.text);
+        if (seconds == null) continue;
+        if (start > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+        frag.appendChild(makeClickableSpan(m.text, seconds));
+        lastIndex = end;
+        changed = true;
+      }
     }
 
     if (!changed) return;
