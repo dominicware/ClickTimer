@@ -649,7 +649,7 @@
     const ms = seconds * 1000;
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2);
 
-    timers.unshift({
+    timers.push({
       id,
       label: label || "Timer",
       endTime: Date.now() + ms,
