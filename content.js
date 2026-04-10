@@ -166,7 +166,6 @@
   let shadow = null;
   let panelEl = null;
   let listEl = null;
-  let countEl = null;
 
   let tickHandle = null;
 
@@ -221,7 +220,7 @@
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 6px 12px;
+          padding: 6px 10px 6px 12px;
           cursor: grab;
 
           font-size: clamp(12px, 2.8vw, 18px);
@@ -240,10 +239,58 @@
           opacity: 0.95;
         }
 
-        .count {
-          font-size: clamp(9px, 2.1vw, 14px);
-          font-weight: 400;
-          opacity: 0.92;
+        .btn-close {
+          all: unset;
+          cursor: pointer;
+          user-select: none;
+
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #ff2b2b;
+
+          display: grid;
+          place-items: center;
+
+          flex-shrink: 0;
+          transition: background 120ms ease, transform 120ms ease;
+        }
+
+        .btn-close:hover {
+          background: #ff5252;
+          transform: scale(1.12);
+        }
+
+        .btn-close:active {
+          background: #cc1a1a;
+          transform: scale(0.94);
+        }
+
+        .btn-close-icon {
+          display: block;
+          width: 8px;
+          height: 8px;
+          position: relative;
+        }
+
+        .btn-close-icon::before,
+        .btn-close-icon::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 9px;
+          height: 1.5px;
+          background: rgba(255,255,255,0.9);
+          border-radius: 1px;
+        }
+
+        .btn-close-icon::before {
+          transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .btn-close-icon::after {
+          transform: translate(-50%, -50%) rotate(-45deg);
         }
 
         .divider {
@@ -375,14 +422,14 @@
         }
 
         .actions button.btn-x {
-          color: rgb(220, 60, 60);
+          color: #ff2b2b;
         }
 
         .actions button.btn-x:hover {
-          background: rgba(220, 60, 60, 0.15);
+          background: rgba(255, 43, 43, 0.15);
         }
         .actions button.btn-x:active {
-          background: rgba(220, 60, 60, 0.25);
+          background: rgba(255, 43, 43, 0.25);
         }
 
         .btn-icon {
@@ -412,7 +459,7 @@
         }
 
         .panel:not(:hover) .header {
-          padding: 6px 12px 6px 12px;
+          padding: 6px 10px 6px 12px;
         }
 
         .donePulse { animation: donePulse 1.1s ease-in-out infinite; }
@@ -427,7 +474,9 @@
       <div class="panel">
         <div class="header">
           <img class="logo" src="${logoUrl}" alt="ClickTimer">
-          <div class="count" id="rt-count">0</div>
+          <button class="btn-close" id="rt-close" aria-label="Close and cancel all timers">
+            <span class="btn-close-icon"></span>
+          </button>
         </div>
         <div class="divider"></div>
         <div class="list" id="rt-list"></div>
@@ -436,7 +485,11 @@
 
     panelEl = shadow.querySelector(".panel");
     listEl = shadow.getElementById("rt-list");
-    countEl = shadow.getElementById("rt-count");
+
+    // Close button — cancel all timers and destroy panel
+    shadow.getElementById("rt-close").addEventListener("click", () => {
+      closeAll();
+    });
 
     shadow.addEventListener("click", (e) => {
       const btn = e.target && e.target.closest ? e.target.closest("button") : null;
@@ -456,12 +509,15 @@
     makeDraggable(panelHost, shadow);
   }
 
-  function destroyPanelIfEmpty() {
-    if (timers.length !== 0) return;
-
+  function destroyPanel() {
     if (tickHandle) {
       clearInterval(tickHandle);
       tickHandle = null;
+    }
+
+    if (alarmAudio) {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
     }
 
     if (panelHost) panelHost.remove();
@@ -470,7 +526,16 @@
     shadow = null;
     panelEl = null;
     listEl = null;
-    countEl = null;
+  }
+
+  function destroyPanelIfEmpty() {
+    if (timers.length !== 0) return;
+    destroyPanel();
+  }
+
+  function closeAll() {
+    timers.length = 0;
+    destroyPanel();
   }
 
   // -----------------------------
@@ -624,7 +689,7 @@
   }
 
   function renderPanel() {
-    if (!panelHost || !listEl || !countEl) return;
+    if (!panelHost || !listEl) return;
 
     if (panelEl) {
       const now = Date.now();
@@ -635,8 +700,6 @@
       });
       panelEl.classList.toggle("rt-has-hours", needsHours);
     }
-
-    countEl.textContent = String(timers.length);
 
     if (timers.length === 0) {
       listEl.innerHTML = `<div class="empty">Click a time to start a timer.</div>`;
