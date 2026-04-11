@@ -4,7 +4,7 @@
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
-  user-select: none; /* prevent accidental selection */
+  /* user-select: none; prevent accidental selection */
 }
 
 .rt-time:hover {
