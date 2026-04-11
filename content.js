@@ -251,7 +251,7 @@
           width: 14px;
           height: 14px;
           border-radius: 50%;
-          background: #ff2b2b;
+          background: #c61e1e;
 
           display: grid;
           place-items: center;
