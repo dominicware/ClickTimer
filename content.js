@@ -13,7 +13,7 @@
   const RESCAN_DEBOUNCE_MS = 500;
 
   const CANDIDATE_RE =
-    /(?:\b\d+(?:\s+\d+\/\d+)?\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)(?:\s+\d+(?:\s+\d+\/\d+)?\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)*|\b\d+\s*[-–—]\s*\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b/gi;
+    /(?:\b\d+(?:\s+\d+\/\d+)?\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)(?:\s+\d+(?:\s+\d+\/\d+)?\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)\b)*/gi;
 
   const TIME_OF_DAY_RE = /\b\d{1,2}:\d{2}\b/;
   const TEMP_RE = /°\s*[CF]?\b/i;
@@ -809,11 +809,12 @@
     return false;
   }
 
-  function makeClickableSpan(text, seconds) {
+  function makeClickableSpan(text, seconds, label) {
     const span = document.createElement("span");
     span.className = "rt-time";
     span.textContent = text;
     span.setAttribute("data-rt-seconds", String(seconds));
+    span.setAttribute("data-rt-label", label || text);
     span.setAttribute("title", "Click to start a timer");
     return span;
   }
@@ -862,11 +863,14 @@
       // Upper number + unit span: remainder of full match
       const upperText = fullText.slice(lowerText.length + sepText.length);
 
+      // Build a descriptive label for the lower span e.g. "4 minutes"
+      const lowerLabel = `${match[1]} ${match[4]}`;
+
       allMatches.push({
         index: fullStart,
         end: fullStart + fullText.length,
         isRange: true,
-        lowerText, lowerSec,
+        lowerText, lowerSec, lowerLabel,
         sepText,
         upperText, upperSec
       });
@@ -907,7 +911,7 @@
 
       if (m.isRange) {
         if (start > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
-        frag.appendChild(makeClickableSpan(m.lowerText, m.lowerSec));
+        frag.appendChild(makeClickableSpan(m.lowerText, m.lowerSec, m.lowerLabel));
         frag.appendChild(document.createTextNode(m.sepText));
         frag.appendChild(makeClickableSpan(m.upperText, m.upperSec));
         lastIndex = end;
@@ -973,7 +977,8 @@
     if (window.getSelection && window.getSelection().toString().length > 0) return;
     const seconds = parseInt(el.getAttribute("data-rt-seconds") || "", 10);
     if (!Number.isFinite(seconds) || seconds <= 0) return;
-    addTimer(seconds, el.textContent.trim());
+    const label = el.getAttribute('data-rt-label') || el.textContent.trim();
+    addTimer(seconds, label);
   });
 
   // -----------------------------
