@@ -111,13 +111,8 @@
       transition: color 0.3s ease;
     }
 
-    .status-text.on {
-      color: var(--on-green);
-    }
-
-    .status-text.off {
-      color: var(--off-red);
-    }
+    .status-text.on  { color: var(--on-green); }
+    .status-text.off { color: var(--off-red); }
 
     /* Toggle switch */
     .toggle-switch {
@@ -164,6 +159,49 @@
       background: var(--on-green);
     }
 
+    /* ---- THEME SELECTOR ---- */
+    .section-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .theme-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .theme-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 7px 4px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+      text-align: center;
+    }
+
+    .theme-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .theme-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
     .info-box {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -175,11 +213,8 @@
       letter-spacing: 0.02em;
     }
 
-    .info-box span {
-      color: var(--accent);
-    }
+    .info-box span { color: var(--accent); }
 
-    /* Pulse dot when enabled */
     .pulse-dot {
       display: inline-block;
       width: 6px;
@@ -198,7 +233,7 @@
 
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+      50%       { opacity: 0.3; }
     }
 
     .footer {
@@ -234,6 +269,15 @@
       <input type="checkbox" id="toggleInput" checked>
       <span class="slider"></span>
     </label>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-label">Panel Theme</div>
+  <div class="theme-row">
+    <button class="theme-btn" data-theme="light">Light</button>
+    <button class="theme-btn active" data-theme="auto">Auto</button>
+    <button class="theme-btn" data-theme="dark">Dark</button>
   </div>
 
   <div class="info-box">

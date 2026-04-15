@@ -160,6 +160,67 @@
   }
 
   // -----------------------------
+  // Theme
+  // -----------------------------
+  let currentTheme = 'auto';
+
+  const LIGHT_VARS = `
+    --rt-panel-bg: linear-gradient(180deg, #f5f2ee 0%, #ede9e3 100%);
+    --rt-panel-color: rgba(0,0,0,0.85);
+    --rt-panel-shadow: 0 12px 32px rgba(0,0,0,0.14), 0 2px 0 rgba(0,0,0,0.04) inset;
+    --rt-divider: rgba(0,0,0,0.08);
+    --rt-row-border: rgba(0,0,0,0.12);
+    --rt-btn-border: rgba(0,0,0,0.10);
+    --rt-btn-hover: rgba(0,0,0,0.06);
+    --rt-btn-active: rgba(0,0,0,0.10);
+    --rt-btn-color: rgba(0,0,0,0.85);
+    --rt-time-color: rgba(0,0,0,0.88);
+    --rt-close-bg: #1a1a1a;
+    --rt-close-hover: #444;
+    --rt-close-active: #000;
+  `;
+
+  const DARK_VARS = `
+    --rt-panel-bg: linear-gradient(180deg, rgba(45,45,45,0.96) 0%, rgba(30,30,30,0.96) 100%);
+    --rt-panel-color: rgba(255,255,255,0.96);
+    --rt-panel-shadow: 0 12px 32px rgba(0,0,0,0.32), 0 2px 0 rgba(255,255,255,0.04) inset;
+    --rt-divider: rgba(255,255,255,0.09);
+    --rt-row-border: rgba(255,255,255,0.18);
+    --rt-btn-border: rgba(255,255,255,0.10);
+    --rt-btn-hover: rgba(255,255,255,0.06);
+    --rt-btn-active: rgba(255,255,255,0.10);
+    --rt-btn-color: rgba(255,255,255,0.92);
+    --rt-time-color: rgba(255,255,255,0.92);
+    --rt-close-bg: #c61e1e;
+    --rt-close-hover: #e02424;
+    --rt-close-active: #a01818;
+  `;
+
+  function applyTheme(theme) {
+    currentTheme = theme;
+    if (!shadow) return;
+
+    let styleEl = shadow.getElementById('rt-theme-vars');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'rt-theme-vars';
+      shadow.insertBefore(styleEl, shadow.firstChild);
+    }
+
+    if (theme === 'light') {
+      styleEl.textContent = `:host { ${LIGHT_VARS} }`;
+    } else if (theme === 'dark') {
+      styleEl.textContent = `:host { ${DARK_VARS} }`;
+    } else {
+      // auto — follow system preference
+      styleEl.textContent = `
+        @media (prefers-color-scheme: light) { :host { ${LIGHT_VARS} } }
+        @media (prefers-color-scheme: dark)  { :host { ${DARK_VARS} } }
+      `;
+    }
+  }
+
+  // -----------------------------
   // Panel lifecycle (lazy create / auto-destroy)
   // -----------------------------
   let panelHost = null;
@@ -195,11 +256,9 @@
           overflow: hidden;
           transition: max-width 160ms ease 160ms, box-shadow 160ms ease;
 
-          color: rgba(0,0,0,0.85);
-          background: linear-gradient(180deg, #f5f2ee 0%, #ede9e3 100%);
-          box-shadow:
-            0 12px 32px rgba(0,0,0,0.14),
-            0 2px 0 rgba(0,0,0,0.04) inset;
+          color: var(--rt-panel-color, rgba(0,0,0,0.85));
+          background: var(--rt-panel-bg, linear-gradient(180deg, #f5f2ee 0%, #ede9e3 100%));
+          box-shadow: var(--rt-panel-shadow, 0 12px 32px rgba(0,0,0,0.14), 0 2px 0 rgba(0,0,0,0.04) inset);
 
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
@@ -236,7 +295,7 @@
           height: 18px;
           width: auto;
           display: block;
-          color: rgba(0, 0, 0, 0.85);
+          color: var(--rt-panel-color, rgba(0,0,0,0.85));
         }
 
         .btn-close {
@@ -247,7 +306,7 @@
           width: 14px;
           height: 14px;
           border-radius: 50%;
-          background: #1a1a1a;
+          background: var(--rt-close-bg, #1a1a1a);
 
           display: grid;
           place-items: center;
@@ -257,12 +316,12 @@
         }
 
         .btn-close:hover {
-          background: #444;
+          background: var(--rt-close-hover, #444);
           transform: scale(1.12);
         }
 
         .btn-close:active {
-          background: #000;
+          background: var(--rt-close-active, #000);
           transform: scale(0.94);
         }
 
@@ -295,7 +354,7 @@
 
         .divider {
           height: 2px;
-          background: rgba(0,0,0,0.08);
+          background: var(--rt-divider, rgba(0,0,0,0.08));
         }
 
         .list {
@@ -317,7 +376,7 @@
           align-items: center;
 
           padding-bottom: 10px;
-          border-bottom: 1px solid rgba(0,0,0,0.12);
+          border-bottom: 1px solid var(--rt-row-border, rgba(0,0,0,0.12));
         }
         .row:last-child {
           padding-bottom: 0;
@@ -354,13 +413,13 @@
           grid-column: 1;
           grid-row: 2;
 
-          font-family: "DSEG7Classic", Georgia, 'Times New Roman', serif;
+          font-family: "DSEG7Classic", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
           font-variant-numeric: tabular-nums;
 
           font-size: clamp(30px, 7.2vw, 50px);
           line-height: 1;
 
-          color: rgba(0,0,0,0.88);
+          color: var(--rt-time-color, rgba(0,0,0,0.88));
           text-shadow: none;
 
           justify-self: end;
@@ -402,33 +461,33 @@
           width: clamp(24px, 5.2vw, 30px);
           height: clamp(24px, 5.2vw, 30px);
 
-          color: rgba(0,0,0,0.85);
+          color: var(--rt-btn-color, rgba(0,0,0,0.85));
           font-size: clamp(12px, 2.6vw, 14px);
           font-weight: 700;
           line-height: 1;
         }
 
-        .actions button:hover { background: rgba(0,0,0,0.06); }
-        .actions button:active { background: rgba(0,0,0,0.10); }
+        .actions button:hover { background: var(--rt-btn-hover, rgba(0,0,0,0.06)); }
+        .actions button:active { background: var(--rt-btn-active, rgba(0,0,0,0.10)); }
 
         .actions button:nth-child(1),
         .actions button:nth-child(3) {
-          border-right: 1px solid rgba(0,0,0,0.10);
+          border-right: 1px solid var(--rt-btn-border, rgba(0,0,0,0.10));
         }
 
         .actions button:nth-child(2) {
-          border-bottom: 1px solid rgba(0,0,0,0.10);
+          border-bottom: 1px solid var(--rt-btn-border, rgba(0,0,0,0.10));
         }
 
         .actions button.btn-x {
-          color: rgba(0, 0, 0, 0.85);
+          color: var(--rt-btn-color, rgba(0,0,0,0.85));
         }
 
         .actions button.btn-x:hover {
-          background: rgba(0, 0, 0, 0.06);
+          background: var(--rt-btn-hover, rgba(0,0,0,0.06));
         }
         .actions button.btn-x:active {
-          background: rgba(0, 0, 0, 0.10);
+          background: var(--rt-btn-active, rgba(0,0,0,0.10));
         }
 
         .btn-icon {
@@ -509,6 +568,7 @@
       if (action === "minus") adjustTimerBySeconds(id, -60);
     });
 
+    applyTheme(currentTheme);
     renderPanel();
     makeDraggable(panelHost, shadow);
   }
@@ -1007,17 +1067,20 @@
   });
 
   // -----------------------------
-  // Enable / disable messaging
+  // Messaging
   // -----------------------------
   chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.action === 'setTheme') {
+      applyTheme(msg.theme);
+      return;
+    }
+
     if (msg.action !== 'setEnabled') return;
 
     if (msg.enabled) {
-      // Re-scan the page to make times clickable again
       scanAndLinkTimes();
       mo.observe(document.documentElement, { childList: true, subtree: true });
     } else {
-      // Stop observing and strip all rt-time spans, restoring original text
       mo.disconnect();
       document.querySelectorAll('.rt-time').forEach(span => {
         span.replaceWith(document.createTextNode(span.textContent));
@@ -1026,10 +1089,11 @@
   });
 
   // -----------------------------
-  // Initialise (respects saved toggle state)
+  // Initialise (respects saved toggle state + theme)
   // -----------------------------
-  chrome.storage.local.get(['enabled'], (result) => {
+  chrome.storage.local.get(['enabled', 'theme'], (result) => {
     const isEnabled = result.enabled !== false; // default true
+    currentTheme = result.theme || 'auto';
     if (isEnabled) {
       scanAndLinkTimes();
       mo.observe(document.documentElement, { childList: true, subtree: true });
