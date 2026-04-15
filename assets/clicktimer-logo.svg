@@ -1,15 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 120">
-  <style>
-    .w {
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      font-size: 118px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-  </style>
-
-  <text x="0" y="100" class="w">
-    <tspan fill="#ff2b2b">Click</tspan><tspan fill="#ffffff">Timer</tspan>
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 120" role="img">
+  <title>ClickTimer</title>
+  <text x="340" y="82"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="48"
+    font-weight="700"
+    font-style="italic"
+    text-anchor="middle"
+    fill="currentColor"
+    letter-spacing="-1">ClickTimer</text>
 </svg>
-

@@ -45,10 +45,6 @@
     ? runtimeGetURL("assets/fonts/DSEG7Classic-Regular.woff2")
     : null;
 
-  const logoUrl = runtimeGetURL
-    ? runtimeGetURL("assets/clicktimer-logo.svg")
-    : "";
-
   // Alarm audio (loops until all DONE timers are dismissed)
   const alarmAudio = alarmUrl ? new Audio(alarmUrl) : null;
   if (alarmAudio) {
@@ -199,11 +195,11 @@
           overflow: hidden;
           transition: max-width 160ms ease 160ms, box-shadow 160ms ease;
 
-          color: rgba(255,255,255,0.96);
-          background: linear-gradient(180deg, rgba(45,45,45,0.96) 0%, rgba(30,30,30,0.96) 100%);
+          color: rgba(0,0,0,0.85);
+          background: linear-gradient(180deg, #f5f2ee 0%, #ede9e3 100%);
           box-shadow:
-            0 12px 32px rgba(0,0,0,0.32),
-            0 2px 0 rgba(255,255,255,0.04) inset;
+            0 12px 32px rgba(0,0,0,0.14),
+            0 2px 0 rgba(0,0,0,0.04) inset;
 
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
@@ -237,10 +233,10 @@
         }
 
         .logo {
-          height: 15px;
+          height: 18px;
           width: auto;
           display: block;
-          opacity: 0.95;
+          color: rgba(0, 0, 0, 0.85);
         }
 
         .btn-close {
@@ -251,7 +247,7 @@
           width: 14px;
           height: 14px;
           border-radius: 50%;
-          background: #c61e1e;
+          background: #1a1a1a;
 
           display: grid;
           place-items: center;
@@ -261,12 +257,12 @@
         }
 
         .btn-close:hover {
-          background: #ff5252;
+          background: #444;
           transform: scale(1.12);
         }
 
         .btn-close:active {
-          background: #cc1a1a;
+          background: #000;
           transform: scale(0.94);
         }
 
@@ -299,7 +295,7 @@
 
         .divider {
           height: 2px;
-          background: rgba(255,255,255,0.09);
+          background: rgba(0,0,0,0.08);
         }
 
         .list {
@@ -321,7 +317,7 @@
           align-items: center;
 
           padding-bottom: 10px;
-          border-bottom: 1px solid rgba(255,255,255,0.18);
+          border-bottom: 1px solid rgba(0,0,0,0.12);
         }
         .row:last-child {
           padding-bottom: 0;
@@ -334,8 +330,9 @@
           grid-column: 1;
           grid-row: 1;
 
+          font-family: Georgia, 'Times New Roman', serif;
           font-size: clamp(14px, 2.4vw, 18px);
-          font-weight: 650;
+          font-weight: 400;
           letter-spacing: -0.02em;
           opacity: 0;
           transition: opacity 160ms ease;
@@ -346,7 +343,7 @@
         }
 
         .panel:hover .label {
-          opacity: 0.92;
+          opacity: 0.8;
         }
 
         .panel:not(:hover) .label {
@@ -357,16 +354,14 @@
           grid-column: 1;
           grid-row: 2;
 
-          font-family: "DSEG7Classic", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          font-family: "DSEG7Classic", Georgia, 'Times New Roman', serif;
           font-variant-numeric: tabular-nums;
 
           font-size: clamp(30px, 7.2vw, 50px);
           line-height: 1;
 
-          color: rgba(255,255,255,0.92);
-          text-shadow:
-            0 0 10px rgba(255,255,255,0.16),
-            0 5px 14px rgba(0,0,0,0.55);
+          color: rgba(0,0,0,0.88);
+          text-shadow: none;
 
           justify-self: end;
         }
@@ -407,33 +402,33 @@
           width: clamp(24px, 5.2vw, 30px);
           height: clamp(24px, 5.2vw, 30px);
 
-          color: rgba(255,255,255,0.92);
+          color: rgba(0,0,0,0.85);
           font-size: clamp(12px, 2.6vw, 14px);
           font-weight: 700;
           line-height: 1;
         }
 
-        .actions button:hover { background: rgba(255,255,255,0.06); }
-        .actions button:active { background: rgba(255,255,255,0.10); }
+        .actions button:hover { background: rgba(0,0,0,0.06); }
+        .actions button:active { background: rgba(0,0,0,0.10); }
 
         .actions button:nth-child(1),
         .actions button:nth-child(3) {
-          border-right: 1px solid rgba(255,255,255,0.10);
+          border-right: 1px solid rgba(0,0,0,0.10);
         }
 
         .actions button:nth-child(2) {
-          border-bottom: 1px solid rgba(255,255,255,0.10);
+          border-bottom: 1px solid rgba(0,0,0,0.10);
         }
 
         .actions button.btn-x {
-          color: #ff2b2b;
+          color: rgba(0, 0, 0, 0.85);
         }
 
         .actions button.btn-x:hover {
-          background: rgba(255, 43, 43, 0.15);
+          background: rgba(0, 0, 0, 0.06);
         }
         .actions button.btn-x:active {
-          background: rgba(255, 43, 43, 0.25);
+          background: rgba(0, 0, 0, 0.10);
         }
 
         .btn-icon {
@@ -469,15 +464,20 @@
         .donePulse { animation: donePulse 1.1s ease-in-out infinite; }
         @keyframes donePulse {
           0%, 100% { filter: brightness(1); }
-          50% { filter: brightness(1.12); }
+          50% { filter: brightness(0.88); }
         }
 
-        .empty { font-size: 12px; opacity: 0.75; }
+        .empty { font-size: 12px; opacity: 0.55; }
       </style>
 
       <div class="panel">
         <div class="header">
-          <img class="logo" src="${logoUrl}" alt="ClickTimer">
+          <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 52">
+            <text x="4" y="44"
+              font-family="Georgia, 'Times New Roman', serif"
+              font-size="48" font-weight="700" font-style="italic"
+              text-anchor="start" fill="currentColor" letter-spacing="-1">ClickTimer</text>
+          </svg>
           <button class="btn-close" id="rt-close" aria-label="Close and cancel all timers">
             <span class="btn-close-icon"></span>
           </button>
@@ -516,6 +516,7 @@
   function destroyPanel() {
     if (tickHandle) {
       clearInterval(tickHandle);
+      clearTimeout(tickHandle);
       tickHandle = null;
     }
 
@@ -558,7 +559,7 @@
   function ensureTicking() {
     if (tickHandle) return;
 
-    tickHandle = setInterval(async () => {
+    async function tick() {
       const now = Date.now();
       let hasRunning = false;
       let newlyDone = false;
@@ -588,7 +589,15 @@
           tickHandle = null;
         }
       }
-    }, 1000);
+    }
+
+    // Align the first tick to the next whole second boundary so the
+    // display counts down smoothly without skipping the first second.
+    const msUntilNextSecond = 1000 - (Date.now() % 1000);
+    tickHandle = setTimeout(() => {
+      tick();
+      tickHandle = setInterval(tick, 1000);
+    }, msUntilNextSecond);
   }
 
   function clamp(n, min, max) {
@@ -893,7 +902,9 @@
       if (n && unit) {
         const seconds = n * unit;
         if (seconds >= MIN_SECONDS && seconds <= MAX_SECONDS) {
-          allMatches.push({ index: match.index, end: match.index + match[0].length, text: match[0], seconds });
+          // Normalise "another/a/an" to their numeric equivalent for the label
+          const numericLabel = `${n} ${match[2]}`;
+          allMatches.push({ index: match.index, end: match.index + match[0].length, text: match[0], seconds, label: numericLabel });
         }
       }
     }
@@ -920,7 +931,7 @@
         const seconds = m.seconds !== null ? m.seconds : parseDurationText(m.text);
         if (seconds == null) continue;
         if (start > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
-        frag.appendChild(makeClickableSpan(m.text, seconds));
+        frag.appendChild(makeClickableSpan(m.text, seconds, m.label));
         lastIndex = end;
         changed = true;
       }
