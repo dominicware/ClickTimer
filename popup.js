@@ -15,7 +15,13 @@ chrome.storage.local.get(['enabled', 'theme'], (result) => {
 toggleInput.addEventListener('change', () => {
   const isEnabled = toggleInput.checked;
   chrome.storage.local.set({ enabled: isEnabled });
-  chrome.runtime.sendMessage({ action: 'setEnabled', enabled: isEnabled });
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, { action: 'setEnabled', enabled: isEnabled });
+    }
+  });
+
   setToggleState(isEnabled);
 });
 
@@ -24,7 +30,13 @@ themeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     const theme = btn.getAttribute('data-theme');
     chrome.storage.local.set({ theme });
-    chrome.runtime.sendMessage({ action: 'setTheme', theme });
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'setTheme', theme });
+      }
+    });
+
     setThemeState(theme);
   });
 });

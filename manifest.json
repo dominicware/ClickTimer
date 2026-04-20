@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ClickTimer",
   "short_name": "ClickTimer",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Detects times and durations on any webpage and turns them into clickable timers. Perfect for recipes, workouts, tutorials and more.",
   "homepage_url": "https://github.com/dominicware/ClickTimer",
   "icons": {
@@ -33,6 +33,12 @@
       "resources": [
         "assets/alarm.mp3",
         "assets/fonts/DSEG7Classic-Regular.woff2",
+        "assets/fonts/orbitron-v35-latin-regular.woff2",
+        "assets/fonts/PlayfairDisplay-Regular.ttf",
+        "assets/fonts/PlayfairDisplay-Bold.ttf",
+        "assets/fonts/PPEditorialNew-Regular.otf",
+        "assets/fonts/Newsreader_60pt-Bold.ttf",
+        "assets/fonts/Newsreader_60pt-Regular.ttf",
         "assets/clicktimer-logo.svg",
         "assets/icons/icon16.png",
         "assets/icons/icon48.png",

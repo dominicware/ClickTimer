@@ -73,17 +73,36 @@
   // Font loading
   // -----------------------------
   let fontLoaded = false;
-  async function loadDsegFontOnce() {
+  async function loadFontsOnce() {
     if (fontLoaded) return;
-    if (!fontUrl || !("FontFace" in window) || !document.fonts) return;
+    if (!runtimeGetURL || !("FontFace" in window) || !document.fonts) return;
 
     try {
-      const face = new FontFace("DSEG7Classic", `url(${fontUrl}) format("woff2")`, {
+      const promises = [];
+
+      if (fontUrl) {
+        const dseg = new FontFace("DSEG7Classic", `url(${fontUrl}) format("woff2")`, {
+          style: "normal",
+          weight: "400"
+        });
+        promises.push(dseg.load().then(f => document.fonts.add(f)));
+      }
+
+      const playfairUrl = runtimeGetURL("assets/fonts/Newsreader_60pt-Regular.ttf");
+      const playfair = new FontFace("Newsreader", `url(${playfairUrl}) format("truetype")`, {
         style: "normal",
         weight: "400"
       });
-      await face.load();
-      document.fonts.add(face);
+      promises.push(playfair.load().then(f => document.fonts.add(f)));
+
+      const playfairBoldUrl = runtimeGetURL("assets/fonts/Newsreader_60pt-Bold.ttf");
+      const playfairBold = new FontFace("Newsreader", `url(${playfairBoldUrl}) format("truetype")`, {
+        style: "normal",
+        weight: "700"
+      });
+      promises.push(playfairBold.load().then(f => document.fonts.add(f)));
+
+      await Promise.allSettled(promises);
       fontLoaded = true;
     } catch {}
   }
@@ -119,7 +138,6 @@
 
       dragging = true;
 
-      // Convert to left/top for drag math
       const rect = host.getBoundingClientRect();
       host.style.left = rect.left + "px";
       host.style.top = rect.top + "px";
@@ -149,11 +167,9 @@
     document.addEventListener("mouseup", () => {
       if (!dragging) return;
       dragging = false;
-      // Re-anchor to nearest corner after drag ends
       applyCornerAnchor();
     });
 
-    // Re-anchor on window resize so panel doesn't go off screen
     window.addEventListener("resize", () => {
       if (!dragging) applyCornerAnchor();
     });
@@ -178,22 +194,24 @@
     --rt-close-bg: #1a1a1a;
     --rt-close-hover: #444;
     --rt-close-active: #000;
+    --rt-close-icon: rgba(255,255,255,0.9);
   `;
 
   const DARK_VARS = `
-    --rt-panel-bg: linear-gradient(180deg, rgba(45,45,45,0.96) 0%, rgba(30,30,30,0.96) 100%);
-    --rt-panel-color: rgba(255,255,255,0.96);
-    --rt-panel-shadow: 0 12px 32px rgba(0,0,0,0.32), 0 2px 0 rgba(255,255,255,0.04) inset;
-    --rt-divider: rgba(255,255,255,0.09);
-    --rt-row-border: rgba(255,255,255,0.18);
-    --rt-btn-border: rgba(255,255,255,0.10);
-    --rt-btn-hover: rgba(255,255,255,0.06);
-    --rt-btn-active: rgba(255,255,255,0.10);
-    --rt-btn-color: rgba(255,255,255,0.92);
-    --rt-time-color: rgba(255,255,255,0.92);
-    --rt-close-bg: #c61e1e;
-    --rt-close-hover: #e02424;
-    --rt-close-active: #a01818;
+    --rt-panel-bg: linear-gradient(180deg, #2a2218 0%, #141210 100%);
+    --rt-panel-color: #f0ebe3;
+    --rt-panel-shadow: 0 12px 32px rgba(0,0,0,0.45), 0 2px 0 rgba(255,255,255,0.03) inset;
+    --rt-divider: rgba(240,235,227,0.08);
+    --rt-row-border: rgba(240,235,227,0.12);
+    --rt-btn-border: rgba(240,235,227,0.10);
+    --rt-btn-hover: rgba(240,235,227,0.06);
+    --rt-btn-active: rgba(240,235,227,0.10);
+    --rt-btn-color: rgba(240,235,227,0.90);
+    --rt-time-color: #f0ebe3;
+    --rt-close-bg: #f0ebe3;
+    --rt-close-hover: #d6d0c8;
+    --rt-close-active: #bdb7af;
+    --rt-close-icon: rgba(20,18,16,0.85);
   `;
 
   function applyTheme(theme) {
@@ -212,7 +230,6 @@
     } else if (theme === 'dark') {
       styleEl.textContent = `:host { ${DARK_VARS} }`;
     } else {
-      // auto — follow system preference
       styleEl.textContent = `
         @media (prefers-color-scheme: light) { :host { ${LIGHT_VARS} } }
         @media (prefers-color-scheme: dark)  { :host { ${DARK_VARS} } }
@@ -233,7 +250,7 @@
   async function createPanelIfNeeded() {
     if (panelHost) return;
 
-    await loadDsegFontOnce();
+    await loadFontsOnce();
 
     panelHost = document.createElement("div");
     panelHost.id = "rt-panel-host";
@@ -340,7 +357,7 @@
           left: 50%;
           width: 9px;
           height: 1.5px;
-          background: rgba(255,255,255,0.9);
+          background: var(--rt-close-icon, rgba(255,255,255,0.9));
           border-radius: 1px;
         }
 
@@ -378,6 +395,7 @@
           padding-bottom: 10px;
           border-bottom: 1px solid var(--rt-row-border, rgba(0,0,0,0.12));
         }
+
         .row:last-child {
           padding-bottom: 0;
           border-bottom: none;
@@ -413,23 +431,23 @@
           grid-column: 1;
           grid-row: 2;
 
-          font-family: "DSEG7Classic", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          font-family: "DSEG7Classic", Georgia, 'Times New Roman', serif;
           font-variant-numeric: tabular-nums;
 
           font-size: clamp(30px, 7.2vw, 50px);
           line-height: 1;
 
           color: var(--rt-time-color, rgba(0,0,0,0.88));
-          text-shadow: none;
 
           justify-self: end;
         }
 
         .actions {
           grid-column: 2;
-          grid-row: 2;
+          grid-row: 1 / 3;
 
           align-self: center;
+          justify-self: center;
 
           display: grid;
           grid-template-columns: auto auto;
@@ -467,7 +485,7 @@
           line-height: 1;
         }
 
-        .actions button:hover { background: var(--rt-btn-hover, rgba(0,0,0,0.06)); }
+        .actions button:hover { background: transparent; }
         .actions button:active { background: var(--rt-btn-active, rgba(0,0,0,0.10)); }
 
         .actions button:nth-child(1),
@@ -484,7 +502,7 @@
         }
 
         .actions button.btn-x:hover {
-          background: var(--rt-btn-hover, rgba(0,0,0,0.06));
+          background: transparent;
         }
         .actions button.btn-x:active {
           background: var(--rt-btn-active, rgba(0,0,0,0.10));
@@ -502,7 +520,9 @@
           grid-template-rows: auto;
           column-gap: 0;
           row-gap: 0;
-          padding-bottom: 6px;
+          padding-bottom: 0;
+          width: 100%;
+          justify-items: center;
         }
 
         .panel:not(:hover) .time {
@@ -513,7 +533,12 @@
         }
 
         .panel:not(:hover) .list {
-          padding: 6px 8px 6px 8px;
+          padding: 4px 8px 4px 8px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          max-height: none;
         }
 
         .panel:not(:hover) .header {
@@ -549,7 +574,6 @@
     panelEl = shadow.querySelector(".panel");
     listEl = shadow.getElementById("rt-list");
 
-    // Close button — cancel all timers and destroy panel
     shadow.getElementById("rt-close").addEventListener("click", () => {
       closeAll();
     });
@@ -651,8 +675,6 @@
       }
     }
 
-    // Align the first tick to the next whole second boundary so the
-    // display counts down smoothly without skipping the first second.
     const msUntilNextSecond = 1000 - (Date.now() % 1000);
     tickHandle = setTimeout(() => {
       tick();
@@ -898,10 +920,8 @@
     WRITTEN_RE.lastIndex = 0;
     RANGE_RE.lastIndex = 0;
 
-    // Each entry is either a simple match or a range match (two spans)
     const allMatches = [];
 
-    // Collect range matches first — these take priority over CANDIDATE_RE
     const rangeIndexes = new Set();
     let match;
     while ((match = RANGE_RE.exec(text)) !== null) {
@@ -919,20 +939,15 @@
       const fullStart = match.index;
       const fullText = match[0];
 
-      // Lower number span: just the digit(s)
       const lowerText = match[1];
       const lowerEnd = fullStart + lowerText.length;
 
-      // Separator text (with surrounding whitespace) from the full match
       const afterLower = fullText.slice(lowerText.length);
       const sepMatchResult = afterLower.match(/^(\s*(?:[-–—]|to)\s*)/);
       const sepText = sepMatchResult ? sepMatchResult[1] : ` ${sep} `;
       const sepEnd = lowerEnd + sepText.length;
 
-      // Upper number + unit span: remainder of full match
       const upperText = fullText.slice(lowerText.length + sepText.length);
-
-      // Build a descriptive label for the lower span e.g. "4 minutes"
       const lowerLabel = `${match[1]} ${match[4]}`;
 
       allMatches.push({
@@ -947,13 +962,11 @@
       for (let i = fullStart; i < fullStart + fullText.length; i++) rangeIndexes.add(i);
     }
 
-    // Collect regular CANDIDATE_RE matches, skipping any covered by a range
     while ((match = CANDIDATE_RE.exec(text)) !== null) {
       if (rangeIndexes.has(match.index)) continue;
       allMatches.push({ index: match.index, end: match.index + match[0].length, text: match[0], seconds: null });
     }
 
-    // Collect written-number matches, skipping any covered by a range
     while ((match = WRITTEN_RE.exec(text)) !== null) {
       if (rangeIndexes.has(match.index)) continue;
       const word = match[1].toLowerCase();
@@ -962,7 +975,6 @@
       if (n && unit) {
         const seconds = n * unit;
         if (seconds >= MIN_SECONDS && seconds <= MAX_SECONDS) {
-          // Normalise "another/a/an" to their numeric equivalent for the label
           const numericLabel = `${n} ${match[2]}`;
           allMatches.push({ index: match.index, end: match.index + match[0].length, text: match[0], seconds, label: numericLabel });
         }
