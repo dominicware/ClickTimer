@@ -330,6 +330,7 @@
           grid-column: 1;
           grid-row: 1;
 
+          font-family: Georgia, 'Times New Roman', serif;
           font-size: clamp(14px, 2.4vw, 18px);
           font-weight: 650;
           letter-spacing: -0.02em;
