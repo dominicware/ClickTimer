@@ -119,7 +119,6 @@
 
       dragging = true;
 
-      // Convert to left/top for drag math
       const rect = host.getBoundingClientRect();
       host.style.left = rect.left + "px";
       host.style.top = rect.top + "px";
@@ -149,14 +148,74 @@
     document.addEventListener("mouseup", () => {
       if (!dragging) return;
       dragging = false;
-      // Re-anchor to nearest corner after drag ends
       applyCornerAnchor();
     });
 
-    // Re-anchor on window resize so panel doesn't go off screen
     window.addEventListener("resize", () => {
       if (!dragging) applyCornerAnchor();
     });
+  }
+
+  // -----------------------------
+  // Theme
+  // -----------------------------
+  let currentTheme = 'auto';
+
+  const LIGHT_VARS = `
+    --rt-panel-bg: linear-gradient(180deg, #f5f2ee 0%, #ede9e3 100%);
+    --rt-panel-color: rgba(0,0,0,0.85);
+    --rt-panel-shadow: 0 12px 32px rgba(0,0,0,0.14), 0 2px 0 rgba(0,0,0,0.04) inset;
+    --rt-divider: rgba(0,0,0,0.08);
+    --rt-row-border: rgba(0,0,0,0.12);
+    --rt-btn-border: rgba(0,0,0,0.10);
+    --rt-btn-hover: rgba(0,0,0,0.06);
+    --rt-btn-active: rgba(0,0,0,0.10);
+    --rt-btn-color: rgba(0,0,0,0.85);
+    --rt-time-color: rgba(0,0,0,0.88);
+    --rt-close-bg: #1a1a1a;
+    --rt-close-hover: #444;
+    --rt-close-active: #000;
+    --rt-close-icon: rgba(255,255,255,0.9);
+  `;
+
+  const DARK_VARS = `
+    --rt-panel-bg: linear-gradient(180deg, #1c1a17 0%, #141210 100%);
+    --rt-panel-color: #f0ebe3;
+    --rt-panel-shadow: 0 12px 32px rgba(0,0,0,0.45), 0 2px 0 rgba(255,255,255,0.03) inset;
+    --rt-divider: rgba(240,235,227,0.08);
+    --rt-row-border: rgba(240,235,227,0.12);
+    --rt-btn-border: rgba(240,235,227,0.10);
+    --rt-btn-hover: rgba(240,235,227,0.06);
+    --rt-btn-active: rgba(240,235,227,0.10);
+    --rt-btn-color: rgba(240,235,227,0.90);
+    --rt-time-color: #f0ebe3;
+    --rt-close-bg: #f0ebe3;
+    --rt-close-hover: #d6d0c8;
+    --rt-close-active: #bdb7af;
+    --rt-close-icon: rgba(20,18,16,0.85);
+  `;
+
+  function applyTheme(theme) {
+    currentTheme = theme;
+    if (!shadow) return;
+
+    let styleEl = shadow.getElementById('rt-theme-vars');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'rt-theme-vars';
+      shadow.insertBefore(styleEl, shadow.firstChild);
+    }
+
+    if (theme === 'light') {
+      styleEl.textContent = `:host { ${LIGHT_VARS} }`;
+    } else if (theme === 'dark') {
+      styleEl.textContent = `:host { ${DARK_VARS} }`;
+    } else {
+      styleEl.textContent = `
+        @media (prefers-color-scheme: light) { :host { ${LIGHT_VARS} } }
+        @media (prefers-color-scheme: dark)  { :host { ${DARK_VARS} } }
+      `;
+    }
   }
 
   // -----------------------------
@@ -195,11 +254,9 @@
           overflow: hidden;
           transition: max-width 160ms ease 160ms, box-shadow 160ms ease;
 
-          color: rgba(0,0,0,0.85);
-          background: linear-gradient(180deg, #f5f2ee 0%, #ede9e3 100%);
-          box-shadow:
-            0 12px 32px rgba(0,0,0,0.14),
-            0 2px 0 rgba(0,0,0,0.04) inset;
+          color: var(--rt-panel-color, rgba(0,0,0,0.85));
+          background: var(--rt-panel-bg, linear-gradient(180deg, #f5f2ee 0%, #ede9e3 100%));
+          box-shadow: var(--rt-panel-shadow, 0 12px 32px rgba(0,0,0,0.14), 0 2px 0 rgba(0,0,0,0.04) inset);
 
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
@@ -220,7 +277,7 @@
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 6px 10px 6px 12px;
+          padding: 6px 10px 6px 8px;
           cursor: grab;
 
           font-size: clamp(12px, 2.8vw, 18px);
@@ -236,7 +293,7 @@
           height: 18px;
           width: auto;
           display: block;
-          color: rgba(0,0,0,0.85);
+          color: var(--rt-panel-color, rgba(0,0,0,0.85));
         }
 
         .btn-close {
@@ -247,7 +304,7 @@
           width: 14px;
           height: 14px;
           border-radius: 50%;
-          background: #1a1a1a;
+          background: var(--rt-close-bg, #1a1a1a);
 
           display: grid;
           place-items: center;
@@ -257,12 +314,12 @@
         }
 
         .btn-close:hover {
-          background: #444;
+          background: var(--rt-close-hover, #444);
           transform: scale(1.12);
         }
 
         .btn-close:active {
-          background: #000;
+          background: var(--rt-close-active, #000);
           transform: scale(0.94);
         }
 
@@ -281,7 +338,7 @@
           left: 50%;
           width: 9px;
           height: 1.5px;
-          background: rgba(255,255,255,0.9);
+          background: var(--rt-close-icon, rgba(255,255,255,0.9));
           border-radius: 1px;
         }
 
@@ -295,11 +352,11 @@
 
         .divider {
           height: 2px;
-          background: rgba(0,0,0,0.08);
+          background: var(--rt-divider, rgba(0,0,0,0.08));
         }
 
         .list {
-          padding: 10px 12px 12px 12px;
+          padding: 6px 12px 8px 12px;
           display: flex;
           flex-direction: column;
           gap: 10px;
@@ -316,8 +373,8 @@
 
           align-items: center;
 
-          padding-bottom: 10px;
-          border-bottom: 1px solid rgba(0,0,0,0.12);
+          padding-bottom: 6px;
+          border-bottom: 1px solid var(--rt-row-border, rgba(0,0,0,0.12));
         }
         .row:last-child {
           padding-bottom: 0;
@@ -330,9 +387,9 @@
           grid-column: 1;
           grid-row: 1;
 
-          font-family: Georgia, 'Times New Roman', serif;
+          font-family: "RobotoCondensed", system-ui, sans-serif;
           font-size: clamp(14px, 2.4vw, 18px);
-          font-weight: 650;
+          font-weight: 400;
           letter-spacing: -0.02em;
           opacity: 0;
           transition: opacity 160ms ease;
@@ -359,9 +416,9 @@
           font-variant-numeric: tabular-nums;
 
           font-size: clamp(36px, 8.5vw, 58px);
-          line-height: 1;
+          line-height: 0.9;
 
-          color: rgba(0,0,0,0.88);
+          color: var(--rt-time-color, rgba(0,0,0,0.88));
 
           justify-self: end;
         }
@@ -402,33 +459,33 @@
           width: clamp(24px, 5.2vw, 30px);
           height: clamp(24px, 5.2vw, 30px);
 
-          color: rgba(0,0,0,0.85);
+          color: var(--rt-btn-color, rgba(0,0,0,0.85));
           font-size: clamp(12px, 2.6vw, 14px);
           font-weight: 700;
           line-height: 1;
         }
 
-        .actions button:hover { background: rgba(0,0,0,0.06); }
-        .actions button:active { background: rgba(0,0,0,0.10); }
+        .actions button:hover { background: transparent; }
+        .actions button:active { background: var(--rt-btn-active, rgba(0,0,0,0.10)); }
 
         .actions button:nth-child(1),
         .actions button:nth-child(3) {
-          border-right: 1px solid rgba(0,0,0,0.10);
+          border-right: 1px solid var(--rt-btn-border, rgba(0,0,0,0.10));
         }
 
         .actions button:nth-child(2) {
-          border-bottom: 1px solid rgba(0,0,0,0.10);
+          border-bottom: 1px solid var(--rt-btn-border, rgba(0,0,0,0.10));
         }
 
         .actions button.btn-x {
-          color: rgba(0,0,0,0.85);
+          color: var(--rt-btn-color, rgba(0,0,0,0.85));
         }
 
         .actions button.btn-x:hover {
-          background: rgba(0,0,0,0.06);
+          background: transparent;
         }
         .actions button.btn-x:active {
-          background: rgba(0,0,0,0.10);
+          background: var(--rt-btn-active, rgba(0,0,0,0.10));
         }
 
         .btn-icon {
@@ -454,11 +511,11 @@
         }
 
         .panel:not(:hover) .list {
-          padding: 6px 8px 6px 8px;
+          padding: 2px 8px 2px 8px;
         }
 
         .panel:not(:hover) .header {
-          padding: 6px 10px 6px 12px;
+          padding: 6px 10px 6px 8px;
         }
 
         .donePulse { animation: donePulse 1.1s ease-in-out infinite; }
@@ -490,7 +547,6 @@
     panelEl = shadow.querySelector(".panel");
     listEl = shadow.getElementById("rt-list");
 
-    // Close button — cancel all timers and destroy panel
     shadow.getElementById("rt-close").addEventListener("click", () => {
       closeAll();
     });
@@ -509,6 +565,7 @@
       if (action === "minus") adjustTimerBySeconds(id, -60);
     });
 
+    applyTheme(currentTheme);
     renderPanel();
     makeDraggable(panelHost, shadow);
   }
@@ -829,10 +886,8 @@
     WRITTEN_RE.lastIndex = 0;
     RANGE_RE.lastIndex = 0;
 
-    // Each entry is either a simple match or a range match (two spans)
     const allMatches = [];
 
-    // Collect range matches first — these take priority over CANDIDATE_RE
     const rangeIndexes = new Set();
     let match;
     while ((match = RANGE_RE.exec(text)) !== null) {
@@ -850,20 +905,15 @@
       const fullStart = match.index;
       const fullText = match[0];
 
-      // Lower number span: just the digit(s)
       const lowerText = match[1];
       const lowerEnd = fullStart + lowerText.length;
 
-      // Separator text (with surrounding whitespace) from the full match
       const afterLower = fullText.slice(lowerText.length);
       const sepMatchResult = afterLower.match(/^(\s*(?:[-–—]|to)\s*)/);
       const sepText = sepMatchResult ? sepMatchResult[1] : ` ${sep} `;
       const sepEnd = lowerEnd + sepText.length;
 
-      // Upper number + unit span: remainder of full match
       const upperText = fullText.slice(lowerText.length + sepText.length);
-
-      // Build a descriptive label for the lower span e.g. "4 minutes"
       const lowerLabel = `${match[1]} ${match[4]}`;
 
       allMatches.push({
@@ -878,13 +928,11 @@
       for (let i = fullStart; i < fullStart + fullText.length; i++) rangeIndexes.add(i);
     }
 
-    // Collect regular CANDIDATE_RE matches, skipping any covered by a range
     while ((match = CANDIDATE_RE.exec(text)) !== null) {
       if (rangeIndexes.has(match.index)) continue;
       allMatches.push({ index: match.index, end: match.index + match[0].length, text: match[0], seconds: null });
     }
 
-    // Collect written-number matches, skipping any covered by a range
     while ((match = WRITTEN_RE.exec(text)) !== null) {
       if (rangeIndexes.has(match.index)) continue;
       const word = match[1].toLowerCase();
@@ -996,17 +1044,20 @@
   });
 
   // -----------------------------
-  // Enable / disable messaging
+  // Messaging
   // -----------------------------
   chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.action === 'setTheme') {
+      applyTheme(msg.theme);
+      return;
+    }
+
     if (msg.action !== 'setEnabled') return;
 
     if (msg.enabled) {
-      // Re-scan the page to make times clickable again
       scanAndLinkTimes();
       mo.observe(document.documentElement, { childList: true, subtree: true });
     } else {
-      // Stop observing and strip all rt-time spans, restoring original text
       mo.disconnect();
       document.querySelectorAll('.rt-time').forEach(span => {
         span.replaceWith(document.createTextNode(span.textContent));
@@ -1015,10 +1066,11 @@
   });
 
   // -----------------------------
-  // Initialise (respects saved toggle state)
+  // Initialise (respects saved toggle state + theme)
   // -----------------------------
-  chrome.storage.local.get(['enabled'], (result) => {
-    const isEnabled = result.enabled !== false; // default true
+  chrome.storage.local.get(['enabled', 'theme'], (result) => {
+    const isEnabled = result.enabled !== false;
+    currentTheme = result.theme || 'auto';
     if (isEnabled) {
       scanAndLinkTimes();
       mo.observe(document.documentElement, { childList: true, subtree: true });
