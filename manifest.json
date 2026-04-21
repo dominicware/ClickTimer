@@ -33,6 +33,8 @@
       "resources": [
         "assets/alarm.mp3",
         "assets/fonts/DSEG7Classic-Regular.woff2",
+        "assets/fonts/DSEG7Classic-Bold.woff2",
+        "assets/fonts/RobotoCondensed-Regular.ttf",
         "assets/clicktimer-logo.svg",
         "assets/icons/icon16.png",
         "assets/icons/icon48.png",
