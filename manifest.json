@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ClickTimer",
   "short_name": "ClickTimer",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Detects times and durations on any webpage and turns them into clickable timers. Perfect for recipes, workouts, tutorials and more.",
   "homepage_url": "https://github.com/dominicware/ClickTimer",
   "icons": {

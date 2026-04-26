@@ -369,7 +369,7 @@
           grid-template-columns: 1fr auto;
           grid-template-rows: auto auto;
           column-gap: 10px;
-          row-gap: 6px;
+          row-gap: 2px;
 
           align-items: center;
 
@@ -615,7 +615,7 @@
   function ensureTicking() {
     if (tickHandle) return;
 
-    tickHandle = setInterval(async () => {
+    async function tick() {
       const now = Date.now();
       let hasRunning = false;
       let newlyDone = false;
@@ -645,7 +645,13 @@
           tickHandle = null;
         }
       }
-    }, 1000);
+    }
+
+    const msUntilNextSecond = 1000 - (Date.now() % 1000);
+    tickHandle = setTimeout(() => {
+      tick();
+      tickHandle = setInterval(tick, 1000);
+    }, msUntilNextSecond);
   }
 
   function clamp(n, min, max) {
